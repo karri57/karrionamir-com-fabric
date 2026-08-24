@@ -1885,3 +1885,17 @@ main > .shopify-section:first-child .section:not(.disable-section-top-offset) {
     margin-top: calc(var(--header-height) * var(--transparent-header-offset-boolean) * -1);
   }
 }
+
+/* Homepage "New Arrivals" product cards: smaller buy buttons.
+   Scoped to this block instance (buy_buttons_tiF3FF) so the product page
+   and other buy-buttons instances keep their normal size. */
+.buy-buttons-block.buy-buttons-block--buy_buttons_tiF3FF {
+  --buy-button-preferred-width: 100px;
+  --height-buy-buttons: 2.25rem;
+}
+
+.buy-buttons-block--buy_buttons_tiF3FF .product-form-buttons button {
+  padding-block: var(--padding-xs);
+  padding-inline: var(--padding-sm);
+  font-size: var(--font-size--xs);
+}
