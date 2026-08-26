@@ -20,7 +20,7 @@
             </div>
 
           {%- when 'newsletter' -%}
-            <div {{ block.shopify_attributes }}>
+            <div id="newsletter" {{ block.shopify_attributes }}>
               <div class="footer__heading">{{ block.settings.heading }}</div>
               {%- form 'customer', id: 'footer-newsletter' -%}
                 <input type="hidden" name="contact[tags]" value="newsletter">

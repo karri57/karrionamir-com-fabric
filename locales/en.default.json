@@ -47,7 +47,13 @@
       "regular_price": "Regular price",
       "sale_price": "Sale price",
       "from_price": "From {{ price }}",
-      "description": "Description"
+      "description": "Description",
+      "zoom_image": "Zoom image",
+      "next_image": "Next image",
+      "image_number": "Show image {{ number }}",
+      "tax_note": "Taxes and duties included",
+      "newsletter_incentive": "Get it for {{ price }} —",
+      "newsletter_incentive_link": "join our newsletter today!"
     }
   },
   "collections": {
@@ -56,6 +62,7 @@
       "sort_by": "Sort by",
       "filter_by": "Filter",
       "view_all": "View All",
+      "view_more": "View More",
       "clear_all": "Clear all",
       "items_count": {
         "one": "{{ count }} product",

@@ -1,10 +1,23 @@
 {%- liquid
-  assign product = product
   assign current_variant = product.selected_or_first_available_variant
+
+  assign color_option_index = -1
+  for option in product.options_with_values
+    assign option_name_down = option.name | downcase
+    if option_name_down contains 'color' or option_name_down contains 'colour'
+      assign color_option_index = forloop.index0
+    endif
+  endfor
+
+  if section.settings.show_newsletter_incentive
+    assign discount_multiplier = 100 | minus: section.settings.newsletter_discount_percent | divided_by: 100.0
+    assign discounted_price = current_variant.price | times: discount_multiplier | round
+    assign discounted_price_formatted = discounted_price | money
+  endif
 -%}
 
-<div class="product page-width section">
-  <product-gallery>
+<div class="product-page">
+  <product-gallery class="product__gallery">
     <div class="product__gallery-main" data-gallery-main>
       {%- if product.featured_media -%}
         <img
@@ -16,9 +29,33 @@
           fetchpriority="high"
         >
       {%- endif -%}
+
+      <button type="button" class="product__gallery-zoom" data-gallery-zoom aria-label="{{ 'products.product.zoom_image' | t }}">
+        {% render 'icon', name: 'search' %}
+      </button>
+
+      {%- if product.media.size > 1 -%}
+        <button type="button" class="product__gallery-next" data-gallery-next aria-label="{{ 'products.product.next_image' | t }}">
+          {% render 'icon', name: 'chevron-right' %}
+        </button>
+      {%- endif -%}
     </div>
 
     {%- if product.media.size > 1 -%}
+      <div class="product__gallery-dots" role="tablist">
+        {%- for media in product.media -%}
+          <button
+            type="button"
+            class="product__gallery-dot"
+            data-thumbnail
+            data-full-src="{{ media.preview_image | image_url: width: 800 }}"
+            data-alt="{{ media.alt | escape }}"
+            aria-current="{% if forloop.first %}true{% else %}false{% endif %}"
+            aria-label="{{ 'products.product.image_number' | t: number: forloop.index }}"
+          ></button>
+        {%- endfor -%}
+      </div>
+
       <div class="product__thumbnails">
         {%- for media in product.media -%}
           <button
@@ -36,16 +73,33 @@
     {%- endif -%}
   </product-gallery>
 
+  <dialog class="product__zoom-dialog" data-gallery-zoom-dialog>
+    <button type="button" class="product__zoom-close" data-gallery-zoom-close aria-label="{{ 'general.accessibility.close' | t }}">
+      {% render 'icon', name: 'close' %}
+    </button>
+    <img data-gallery-zoom-image alt="{{ product.featured_media.alt | escape }}" width="1200" height="1500">
+  </dialog>
+
   <div class="product__info">
     <h1 class="product__title">{{ product.title }}</h1>
 
-    <div class="product__price">
-      {%- render 'price', product: current_variant -%}
+    <div class="product__price-row">
+      <div class="product__price" data-product-price>
+        {%- render 'price', product: current_variant -%}
+      </div>
+      <span class="product__tax-note">{{ 'products.product.tax_note' | t }}</span>
     </div>
+
+    {%- if section.settings.show_newsletter_incentive and discounted_price < current_variant.price -%}
+      <p class="product__newsletter-incentive">
+        {{ 'products.product.newsletter_incentive' | t: price: discounted_price_formatted }}
+        <a href="#newsletter" class="link-underline">{{ 'products.product.newsletter_incentive_link' | t }}</a>
+      </p>
+    {%- endif -%}
 
     <product-form>
       <form action="{{ routes.cart_add_url }}" method="post" enctype="multipart/form-data">
-        <input type="hidden" name="id" value="{{ current_variant.id }}">
+        <input type="hidden" name="id" value="{{ current_variant.id }}" ref="variantId">
 
         {%- if product.has_only_default_variant == false -%}
           <variant-picker>
@@ -56,20 +110,58 @@
             {%- for option in product.options_with_values -%}
               <fieldset class="product__option" data-option-index="{{ forloop.index0 }}">
                 <span class="product__option-name">{{ option.name }}</span>
-                <div class="swatch-list">
-                  {%- for value in option.values -%}
-                    <label class="swatch" data-value="{{ value | escape }}" aria-current="{% if current_variant.options[forloop.parentloop.index0] == value %}true{% else %}false{% endif %}">
-                      <input
-                        type="radio"
-                        name="option-{{ forloop.parentloop.index0 }}"
-                        value="{{ value | escape }}"
-                        class="visually-hidden"
-                        {% if current_variant.options[forloop.parentloop.index0] == value %}checked{% endif %}
+
+                {%- if forloop.index0 == color_option_index -%}
+                  <div class="swatch-list swatch-list--image">
+                    {%- for value in option.values -%}
+                      {%- liquid
+                        assign swatch_variant = nil
+                        for v in product.variants
+                          if v.options[color_option_index] == value
+                            assign swatch_variant = v
+                            break
+                          endif
+                        endfor
+                        assign swatch_image = swatch_variant.featured_image | default: product.featured_image
+                      -%}
+                      <label
+                        class="swatch swatch--image"
+                        data-value="{{ value | escape }}"
+                        aria-current="{% if current_variant.options[color_option_index] == value %}true{% else %}false{% endif %}"
                       >
-                      {{ value }}
-                    </label>
-                  {%- endfor -%}
-                </div>
+                        <input
+                          type="radio"
+                          name="option-{{ color_option_index }}"
+                          value="{{ value | escape }}"
+                          class="visually-hidden"
+                          {% if current_variant.options[color_option_index] == value %}checked{% endif %}
+                        >
+                        {%- if swatch_image -%}
+                          <img src="{{ swatch_image | image_url: width: 100 }}" alt="{{ value | escape }}" width="44" height="55" loading="lazy">
+                        {%- endif -%}
+                      </label>
+                    {%- endfor -%}
+                  </div>
+                {%- else -%}
+                  <div class="swatch-list">
+                    {%- for value in option.values -%}
+                      <label
+                        class="swatch"
+                        data-value="{{ value | escape }}"
+                        aria-current="{% if current_variant.options[forloop.parentloop.index0] == value %}true{% else %}false{% endif %}"
+                      >
+                        <input
+                          type="radio"
+                          name="option-{{ forloop.parentloop.index0 }}"
+                          value="{{ value | escape }}"
+                          class="visually-hidden"
+                          {% if current_variant.options[forloop.parentloop.index0] == value %}checked{% endif %}
+                        >
+                        {{ value }}
+                      </label>
+                    {%- endfor -%}
+                  </div>
+                {%- endif -%}
               </fieldset>
             {%- endfor -%}
           </variant-picker>
@@ -90,6 +182,7 @@
         <button
           type="submit"
           class="button button--full"
+          data-add-to-cart-button
           {% unless current_variant.available %}aria-disabled="true"{% endunless %}
         >
           {%- if current_variant.available -%}
@@ -101,17 +194,105 @@
       </form>
     </product-form>
 
-    {%- if product.description != blank -%}
-      <div class="product__description rich-text">
-        {{ product.description }}
-      </div>
+    {%- if section.settings.fit_note != blank -%}
+      <p class="product__fit-note">{{ section.settings.fit_note }}</p>
     {%- endif -%}
+
+    <div class="product__accordions">
+      {%- for block in section.blocks -%}
+        {%- if block.type == 'accordion_item' -%}
+          <details class="accordion-item" {{ block.shopify_attributes }}>
+            <summary class="accordion-item__summary">
+              {{ block.settings.title }}
+              <span class="accordion-item__icon">{% render 'icon', name: 'plus' %}</span>
+            </summary>
+            <div class="accordion-item__content rich-text">
+              {%- if block.settings.use_description -%}
+                {{ product.description }}
+              {%- else -%}
+                {{ block.settings.content }}
+              {%- endif -%}
+            </div>
+          </details>
+        {%- endif -%}
+      {%- endfor -%}
+    </div>
   </div>
 </div>
+
+<div class="sticky-add-to-cart" data-sticky-add-to-cart hidden>
+  <div class="sticky-add-to-cart__info">
+    <span class="sticky-add-to-cart__title">{{ product.title }}</span>
+    <span class="sticky-add-to-cart__price">{%- render 'price', product: current_variant -%}</span>
+  </div>
+  <button type="button" class="button" data-sticky-add-to-cart-button {% unless current_variant.available %}aria-disabled="true"{% endunless %}>
+    {%- if current_variant.available -%}
+      {{ 'products.product.add_to_cart' | t }}
+    {%- else -%}
+      {{ 'products.product.sold_out' | t }}
+    {%- endif -%}
+  </button>
+</div>
+
+<script>
+  window.themeRecentlyViewed?.record({
+    id: {{ product.id | json }},
+    title: {{ product.title | json }},
+    url: {{ product.url | json }},
+    image: {{ product.featured_image | image_url: width: 600 | json }},
+    price: {{ current_variant.price | json }},
+    compareAtPrice: {{ current_variant.compare_at_price | json }}
+  });
+</script>
 
 {% schema %}
 {
   "name": "Product information",
-  "settings": []
+  "settings": [
+    {
+      "type": "text",
+      "id": "fit_note",
+      "label": "Fit note",
+      "info": "Optional sizing/fit line shown under the add to cart button, e.g. \"Models are wearing size M\"."
+    },
+    {
+      "type": "header",
+      "content": "Newsletter discount line"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_newsletter_incentive",
+      "label": "Show newsletter discount line",
+      "default": true
+    },
+    {
+      "type": "range",
+      "id": "newsletter_discount_percent",
+      "label": "Discount percent",
+      "min": 0,
+      "max": 50,
+      "step": 1,
+      "default": 10,
+      "visible_if": "{{ section.settings.show_newsletter_incentive }}"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "accordion_item",
+      "name": "Accordion item",
+      "settings": [
+        { "type": "text", "id": "title", "label": "Title", "default": "Details" },
+        { "type": "checkbox", "id": "use_description", "label": "Use product description", "default": false },
+        { "type": "richtext", "id": "content", "label": "Content", "visible_if": "{{ block.settings.use_description == false }}" }
+      ]
+    }
+  ],
+  "default": {
+    "blocks": [
+      { "type": "accordion_item", "settings": { "title": "Product details", "use_description": true } },
+      { "type": "accordion_item", "settings": { "title": "Size chart" } },
+      { "type": "accordion_item", "settings": { "title": "Shipping details" } }
+    ]
+  }
 }
 {% endschema %}

@@ -1,0 +1,36 @@
+{%- comment -%}
+  Real Shopify product recommendations, rendered as a horizontally scrollable carousel.
+{%- endcomment -%}
+
+<div class="section page-width">
+  {%- recommendations product: product, limit: section.settings.limit -%}
+    {%- if recommendations.performed and recommendations.products_count > 0 -%}
+      <div class="section__header">
+        {%- if section.settings.heading != blank -%}
+          <h2 class="section__heading">{{ section.settings.heading }}</h2>
+        {%- endif -%}
+        <a href="{{ routes.all_products_collection_url }}" class="section__link">
+          {{ 'collections.general.view_more' | t }}
+        </a>
+      </div>
+
+      <div class="carousel-row">
+        {%- for product in recommendations.products -%}
+          <div class="carousel-row__item">
+            {%- render 'product-card', product: product -%}
+          </div>
+        {%- endfor -%}
+      </div>
+    {%- endif -%}
+  {%- endrecommendations -%}
+</div>
+
+{% schema %}
+{
+  "name": "Product recommendations",
+  "settings": [
+    { "type": "text", "id": "heading", "label": "Heading", "default": "Recommended" },
+    { "type": "range", "id": "limit", "label": "Products to show", "min": 4, "max": 12, "step": 1, "default": 8 }
+  ]
+}
+{% endschema %}

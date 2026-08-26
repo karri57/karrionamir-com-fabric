@@ -334,15 +334,151 @@ class ProductGallery extends HTMLElement {
     this.mainImage = this.querySelector('[data-gallery-main] img');
     this.addEventListener('click', (event) => {
       const thumb = event.target.closest('[data-thumbnail]');
-      if (!thumb || !this.mainImage) return;
-      this.mainImage.src = thumb.dataset.fullSrc;
-      this.mainImage.alt = thumb.dataset.alt || '';
-      this.querySelectorAll('[data-thumbnail]').forEach((el) => el.setAttribute('aria-current', 'false'));
-      thumb.setAttribute('aria-current', 'true');
+      if (thumb) {
+        this.show(thumb.dataset.fullSrc, thumb.dataset.alt);
+        return;
+      }
+      if (event.target.closest('[data-gallery-next]')) {
+        this.showNext();
+        return;
+      }
+      if (event.target.closest('[data-gallery-zoom]')) {
+        this.openZoom();
+      }
     });
+  }
+
+  get dots() {
+    return Array.from(this.querySelectorAll('.product__gallery-dots [data-thumbnail]'));
+  }
+
+  get allThumbs() {
+    return Array.from(this.querySelectorAll('[data-thumbnail]'));
+  }
+
+  show(src, alt) {
+    if (!this.mainImage || !src) return;
+    this.mainImage.src = src;
+    this.mainImage.alt = alt || '';
+    this.allThumbs.forEach((el) => el.setAttribute('aria-current', el.dataset.fullSrc === src ? 'true' : 'false'));
+  }
+
+  showNext() {
+    const dots = this.dots;
+    if (dots.length < 2) return;
+    const currentIndex = dots.findIndex((el) => el.getAttribute('aria-current') === 'true');
+    const next = dots[(currentIndex + 1) % dots.length];
+    if (next) this.show(next.dataset.fullSrc, next.dataset.alt);
+  }
+
+  openZoom() {
+    const dialog = document.querySelector('[data-gallery-zoom-dialog]');
+    const zoomImage = dialog?.querySelector('[data-gallery-zoom-image]');
+    if (!dialog || !zoomImage || !this.mainImage) return;
+    zoomImage.src = this.mainImage.src;
+    zoomImage.alt = this.mainImage.alt;
+    dialog.showModal();
   }
 }
 customElements.define('product-gallery', ProductGallery);
+
+document.addEventListener('click', (event) => {
+  if (event.target.closest('[data-gallery-zoom-close]')) {
+    event.target.closest('dialog')?.close();
+    return;
+  }
+  if (event.target.matches('[data-gallery-zoom-dialog]')) {
+    event.target.close();
+  }
+});
+
+/* -------------------------------------------------------------------------
+ * Sticky add-to-cart bar: mirrors the main product form's submit button
+ * ---------------------------------------------------------------------- */
+(function stickyAddToCart() {
+  const bar = document.querySelector('[data-sticky-add-to-cart]');
+  const mainButton = document.querySelector('[data-add-to-cart-button]');
+  if (!bar || !mainButton) return;
+
+  bar.hidden = false;
+
+  bar.querySelector('[data-sticky-add-to-cart-button]')?.addEventListener('click', () => {
+    mainButton.closest('form')?.requestSubmit();
+  });
+
+  const observer = new IntersectionObserver(
+    ([entry]) => {
+      bar.classList.toggle('sticky-add-to-cart--visible', !entry.isIntersecting);
+    },
+    { threshold: 0 }
+  );
+  observer.observe(mainButton);
+})();
+
+/* -------------------------------------------------------------------------
+ * Recently viewed: records visited products to localStorage
+ * ---------------------------------------------------------------------- */
+window.themeRecentlyViewed = {
+  key: 'theme:recently-viewed',
+  max: 12,
+
+  record(product) {
+    if (!product?.id) return;
+    try {
+      const items = this.list().filter((item) => item.id !== product.id);
+      items.unshift(product);
+      localStorage.setItem(this.key, JSON.stringify(items.slice(0, this.max)));
+    } catch (error) {
+      // localStorage unavailable (private mode, etc.) - skip silently.
+    }
+  },
+
+  list(excludeId) {
+    try {
+      const items = JSON.parse(localStorage.getItem(this.key) || '[]');
+      return excludeId ? items.filter((item) => item.id !== excludeId) : items;
+    } catch (error) {
+      return [];
+    }
+  },
+};
+
+class RecentlyViewedProducts extends HTMLElement {
+  connectedCallback() {
+    const excludeId = Number(this.dataset.excludeId);
+    const items = window.themeRecentlyViewed.list(excludeId).slice(0, 8);
+    if (items.length === 0) return;
+
+    const row = this.querySelector('[data-recently-viewed-items]');
+    if (!row) return;
+
+    row.innerHTML = items.map((item) => this.renderCard(item)).join('');
+    this.hidden = false;
+  }
+
+  renderCard(item) {
+    const onSale = item.compareAtPrice > item.price;
+    const priceHtml = onSale
+      ? `<span class="price--sale">${formatMoney(item.price)}</span><span class="price__compare">${formatMoney(item.compareAtPrice)}</span>`
+      : `<span>${formatMoney(item.price)}</span>`;
+
+    return `
+      <div class="carousel-row__item">
+        <div class="product-card">
+          <div class="product-card__media">
+            <a href="${item.url}" class="product-card__media-link">
+              <img src="${item.image}" alt="" width="600" height="750" loading="lazy">
+            </a>
+          </div>
+          <a href="${item.url}" class="product-card__link">
+            <div class="product-card__title">${item.title}</div>
+            <div class="product-card__price">${priceHtml}</div>
+          </a>
+        </div>
+      </div>`;
+  }
+}
+customElements.define('recently-viewed-products', RecentlyViewedProducts);
 
 /* -------------------------------------------------------------------------
  * Header shadow on scroll (subtle, optional)
