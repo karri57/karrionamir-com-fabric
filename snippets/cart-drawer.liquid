@@ -48,7 +48,7 @@
         {%- else -%}
           {%- for item in cart.items -%}
             <div class="cart-item">
-              <a href="{{ item.url }}" class="cart-item__media">
+              <a href="{{ item.url }}" class="cart-item__media" {% if item.properties._design_id %}data-design-id="{{ item.properties._design_id }}"{% endif %}>
                 {%- if item.image -%}
                   <img src="{{ item.image | image_url: width: 200 }}" alt="{{ item.product_title | escape }}" width="100" height="125" loading="lazy">
                 {%- endif -%}
@@ -65,7 +65,7 @@
                 {%- endunless -%}
                 {%- for property in item.properties -%}
                   {%- assign first_char = property.first | slice: 0 -%}
-                  {%- if property.last != blank and first_char != '_' -%}
+                  {%- if property.last != blank and first_char != '_' and property.first != 'Design preview' -%}
                     <div class="cart-item__variant">{{ property.first }}: {{ property.last }}</div>
                   {%- endif -%}
                 {%- endfor -%}

@@ -141,6 +141,9 @@
     }
   },
   "sections": {
+    "customizer": {
+      "gesture_hint": "Tap a design to place it. Drag to move, pinch to resize, twist to rotate."
+    },
     "customizer_promo": {
       "drag_hint": "Drag a design onto the shirt — double-tap a placed design to remove it",
       "clear": "Clear"

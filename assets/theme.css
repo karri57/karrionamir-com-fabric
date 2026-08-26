@@ -1691,16 +1691,28 @@ p {
 .kc__header {
   text-align: center;
   margin-bottom: 2rem;
+  padding-inline: 0.5rem;
 }
 
 .kc__title {
-  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  font-size: clamp(1.5rem, 7vw, 2.5rem);
   text-transform: uppercase;
+  text-wrap: balance;
 }
 
 .kc__subtext {
   color: rgb(from var(--color-fg) r g b / 65%);
   margin-top: 0.5rem;
+  text-wrap: pretty;
+  max-width: 34rem;
+  margin-inline: auto;
+}
+
+/* The studio's own bottom padding clears the sticky mobile CTA. */
+@media screen and (max-width: 989px) {
+  .kc {
+    padding-bottom: 6.5rem;
+  }
 }
 
 .kc__layout {
@@ -1742,8 +1754,18 @@ p {
 
 .kc__canvas-tabs {
   display: flex;
-  flex-wrap: wrap;
   gap: 0.4rem;
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
+  scrollbar-width: none;
+}
+
+.kc__canvas-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.kc__canvas-tabs button {
+  white-space: nowrap;
 }
 
 .kc__canvas-tabs button {
@@ -1791,16 +1813,75 @@ p {
   object-fit: cover;
 }
 
+.kc__sizes {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.kc__size {
+  min-width: 3rem;
+  height: 2.75rem;
+  padding: 0 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  font-size: 0.85rem;
+}
+
+.kc__size[aria-current='true'] {
+  background: var(--color-fg);
+  border-color: var(--color-fg);
+  color: var(--color-bg);
+}
+
+.kc__size:disabled {
+  opacity: 0.35;
+  text-decoration: line-through;
+  cursor: not-allowed;
+}
+
+.kc__design {
+  position: relative;
+}
+
+.kc__design-price {
+  position: absolute;
+  right: 0.15rem;
+  bottom: 0.15rem;
+  font-size: 0.6rem;
+  padding: 0.05rem 0.3rem;
+  border-radius: 999px;
+  background: var(--color-fg);
+  color: var(--color-bg);
+}
+
+.kc__hint {
+  font-size: 0.75rem;
+  color: rgb(from var(--color-fg) r g b / 55%);
+  text-align: center;
+}
+
 .kc__stage {
   position: relative;
   background-color: var(--color-surface);
   background-image: radial-gradient(rgb(from var(--color-fg) r g b / 8%) 1.5px, transparent 1.5px);
   background-size: 20px 20px;
   border-radius: var(--radius);
-  padding: 1.5rem;
+  padding: 1rem;
   perspective: 900px;
+  /* Pinch/rotate gestures are handled in JS, so the browser must not
+     claim the touch for scrolling or page zoom. */
   touch-action: none;
   overflow: hidden;
+}
+
+@media screen and (min-width: 750px) {
+  .kc__stage {
+    padding: 1.5rem;
+  }
 }
 
 .kc__garment-wrap {
@@ -1831,6 +1912,7 @@ p {
   position: absolute;
   cursor: grab;
   user-select: none;
+  touch-action: none;
 }
 
 .kc__item img {
@@ -1938,6 +2020,25 @@ p {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+}
+
+/* On phones the primary CTA pins to the bottom so it's always reachable
+   while designing; the secondary actions stay inline. */
+@media screen and (max-width: 989px) {
+  .kc__add {
+    position: fixed;
+    inset-inline: 0.75rem;
+    bottom: max(0.75rem, env(safe-area-inset-bottom));
+    z-index: 30;
+    width: auto;
+    padding-block: 1.05rem;
+    box-shadow: 0 6px 20px rgb(0 0 0 / 22%);
+  }
+}
+
+.kc__selection-tools button {
+  min-width: 2.75rem;
+  min-height: 2.75rem;
 }
 
 .kc__note {

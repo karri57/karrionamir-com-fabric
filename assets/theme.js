@@ -108,6 +108,17 @@ class CartDrawer extends HTMLElement {
       .then((r) => r.json())
       .then((cart) => this.renderUpsell(cart))
       .catch(() => {});
+
+    this.applyDesignPreviews();
+  }
+
+  // Swap in stored design renders on the server-rendered markup.
+  applyDesignPreviews() {
+    this.querySelectorAll('[data-design-id]').forEach((media) => {
+      const preview = window.themeDesignPreviews?.get(media.dataset.designId);
+      const img = media.querySelector('img');
+      if (preview && img) img.src = preview;
+    });
   }
 
   open() {
@@ -168,13 +179,17 @@ class CartDrawer extends HTMLElement {
           .map((o) => `${o.name}: ${o.value}`)
           .join(' · ');
         const properties = Object.entries(item.properties || {})
-          .filter(([key, value]) => value && !key.startsWith('_'))
+          .filter(([key, value]) => value && !key.startsWith('_') && key !== 'Design preview')
           .map(([key, value]) => `<div class="cart-item__variant">${key}: ${value}</div>`)
           .join('');
+        // A studio design shows the shopper's own render instead of the
+        // stock product photo.
+        const designPreview = window.themeDesignPreviews?.get(item.properties?._design_id);
+        const image = designPreview || item.image;
         return `
       <div class="cart-item">
         <a href="${item.url}" class="cart-item__media">
-          ${item.image ? `<img src="${item.image}" alt="${item.product_title}" width="100" height="125" loading="lazy">` : ''}
+          ${image ? `<img src="${image}" alt="${item.product_title}" width="100" height="125" loading="lazy">` : ''}
         </a>
         <div class="cart-item__info">
           <a href="${item.url}" class="cart-item__title">${item.product_title}</a>
@@ -542,6 +557,44 @@ document.addEventListener('click', (event) => {
   );
   observer.observe(mainButton);
 })();
+
+/* -------------------------------------------------------------------------
+ * Design previews: thumbnails of studio designs, keyed by the _design_id
+ * line item property, so the cart can show what the shopper actually made.
+ * (The full-size preview goes to the order itself when an upload target
+ * is configured in theme settings.)
+ * ---------------------------------------------------------------------- */
+window.themeDesignPreviews = {
+  key: 'theme:design-previews',
+  max: 24,
+
+  all() {
+    try {
+      return JSON.parse(localStorage.getItem(this.key) || '{}');
+    } catch (error) {
+      return {};
+    }
+  },
+
+  put(id, dataUrl) {
+    if (!id || !dataUrl) return;
+    try {
+      const store = this.all();
+      store[id] = dataUrl;
+      const keys = Object.keys(store);
+      // Keep the store bounded — data URLs are heavy.
+      for (const stale of keys.slice(0, Math.max(0, keys.length - this.max))) delete store[stale];
+      localStorage.setItem(this.key, JSON.stringify(store));
+    } catch (error) {
+      // Quota exceeded or storage unavailable — the cart just falls back
+      // to the product photo.
+    }
+  },
+
+  get(id) {
+    return id ? this.all()[id] || null : null;
+  },
+};
 
 /* -------------------------------------------------------------------------
  * Recently viewed: records visited products to localStorage

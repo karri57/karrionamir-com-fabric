@@ -152,6 +152,25 @@
     ]
   },
   {
+    "name": "Design studio",
+    "settings": [
+      {
+        "type": "paragraph",
+        "content": "Optional: save each customer design as an image attached to the order. Create a free Cloudinary account (cloudinary.com), then in its Settings → Upload add an 'unsigned' upload preset and enter both values below. Orders then include a 'Design preview' link showing exactly what the customer made."
+      },
+      {
+        "type": "text",
+        "id": "design_upload_cloud",
+        "label": "Cloudinary cloud name"
+      },
+      {
+        "type": "text",
+        "id": "design_upload_preset",
+        "label": "Cloudinary unsigned upload preset"
+      }
+    ]
+  },
+  {
     "name": "Newsletter",
     "settings": [
       {

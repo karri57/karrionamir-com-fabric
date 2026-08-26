@@ -34,7 +34,8 @@
           {%- if block.type == 'design' and block.settings.image != blank -%}
             {
               "label": {{ block.settings.label | default: 'Design' | json }},
-              "src": {{ block.settings.image | image_url: width: 500 | json }}
+              "src": {{ block.settings.image | image_url: width: 500 | json }},
+              "price": {{ block.settings.price | default: 0 | json }}
             },
           {%- endif -%}
         {%- endfor -%}
@@ -49,6 +50,17 @@
               "label": {{ block.settings.label | json }},
               "variant": {{ canvas_variant.id | json }},
               "price": {{ canvas_variant.price | json }},
+              "variants": [
+                {%- for variant in block.settings.product.variants -%}
+                  {
+                    "id": {{ variant.id | json }},
+                    "title": {{ variant.title | json }},
+                    "available": {{ variant.available | json }},
+                    "price": {{ variant.price | json }}
+                  },
+                {%- endfor -%}
+                null
+              ],
               "colorways": [
                 { "name": {{ block.settings.color_1_name | default: 'Standard' | json }}, "src": {{ block.settings.photo_1 | image_url: width: 900 | json }} },
                 {%- if block.settings.photo_2 != blank -%}
@@ -74,6 +86,11 @@
       "prices": {
         "tee": {{ tee_variant.price | json }},
         "hoodie": {{ hoodie_variant.price | json }}
+      },
+      "feeVariant": {{ section.settings.fee_product.selected_or_first_available_variant.id | json }},
+      "upload": {
+        "cloud": {{ settings.design_upload_cloud | json }},
+        "preset": {{ settings.design_upload_preset | json }}
       }
     }
   </script>
@@ -192,6 +209,10 @@
           <span class="kc__panel-label">Colorway &mdash; <span data-kc-colorway-name></span></span>
           <div class="kc__colorways" data-kc-colorways></div>
         </div>
+        <div class="kc__panel-group" data-kc-size-group hidden>
+          <span class="kc__panel-label">Size</span>
+          <div class="kc__sizes" data-kc-sizes></div>
+        </div>
       {%- else -%}
         <div class="kc__panel-group">
           <span class="kc__panel-label">Color</span>
@@ -214,7 +235,7 @@
       </div>
 
       <div class="kc__actions">
-        <button type="button" class="button button--full" data-kc-add hidden>
+        <button type="button" class="button button--full kc__add" data-kc-add hidden>
           Add to cart <span aria-hidden="true">&bull;</span> <span data-kc-price></span>
         </button>
         <button type="button" class="button button--secondary button--full" data-kc-download>
@@ -223,6 +244,7 @@
         <p class="kc__note" data-kc-note hidden>
           To sell this piece, pick its product in this canvas block's theme-editor settings.
         </p>
+        <p class="kc__hint">{{ 'sections.customizer.gesture_hint' | t }}</p>
       </div>
     </div>
   </div>
@@ -242,7 +264,17 @@
       "info": "Only used when no Canvas blocks are configured below."
     },
     { "type": "product", "id": "tee_product", "label": "Custom tee product (fallback mode)" },
-    { "type": "product", "id": "hoodie_product", "label": "Custom hoodie product (fallback mode)" }
+    { "type": "product", "id": "hoodie_product", "label": "Custom hoodie product (fallback mode)" },
+    {
+      "type": "header",
+      "content": "Design pricing"
+    },
+    {
+      "type": "product",
+      "id": "fee_product",
+      "label": "Customization fee product",
+      "info": "Create a hidden product priced at exactly $1.00 (e.g. \"Customization fee\") and pick it here. When designs below carry a price, the studio adds this product at a quantity equal to the total fee, so the extra charge appears on the order. Without it, design prices are ignored."
+    }
   ],
   "blocks": [
     {
@@ -270,7 +302,13 @@
       "name": "Design",
       "settings": [
         { "type": "text", "id": "label", "label": "Name", "default": "Logo" },
-        { "type": "image_picker", "id": "image", "label": "Design image", "info": "Transparent PNGs work best." }
+        { "type": "image_picker", "id": "image", "label": "Design image", "info": "Transparent PNGs work best." },
+        {
+          "type": "number",
+          "id": "price",
+          "label": "Extra charge (whole dollars)",
+          "info": "Added per placement of this design. Requires the fee product in the section settings. 0 = free."
+        }
       ]
     }
   ]

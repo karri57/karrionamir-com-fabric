@@ -1,13 +1,21 @@
 /**
  * KA Design Studio.
  *
- * Photo mode: real garment "canvases" (photo + colorway swatches +
- * product) defined as section blocks; the picker page links here with
- * ?canvas=<handle> to open the chosen garment. Placements are stored
- * per canvas as percentages of the stage.
+ * Photo mode: real garment "canvases" (photo + colorway swatches + size
+ * variants + product) defined as section blocks; the picker page links
+ * here with ?canvas=<handle>. Placements are stored per canvas as
+ * percentages of the stage.
  *
- * Legacy mode (no canvas blocks): the original tee/hoodie SVG mockups
- * with flat colors and front/back views.
+ * On add-to-cart the design is rendered to a PNG: a thumbnail is kept
+ * in localStorage so the cart shows the actual design, and — when a
+ * Cloudinary unsigned preset is configured in theme settings — the
+ * full preview is uploaded and its URL attached to the order as the
+ * "Design preview" line item property.
+ *
+ * Designs may carry a per-placement price; the total is charged by
+ * adding the configured $1 "fee product" at quantity = total fee.
+ *
+ * Legacy mode (no canvas blocks): the original tee/hoodie SVG mockups.
  */
 
 function money(cents) {
@@ -26,20 +34,25 @@ class KaCustomizer extends HTMLElement {
         canvases: (parsed.canvases || []).filter(Boolean).map((canvas) => ({
           ...canvas,
           colorways: (canvas.colorways || []).filter(Boolean),
+          variants: (canvas.variants || []).filter(Boolean),
         })),
         variants: parsed.variants || {},
         prices: parsed.prices || {},
+        feeVariant: parsed.feeVariant || null,
+        upload: parsed.upload || {},
       };
     } catch (error) {
       console.error('[studio] bad config', error);
-      this.config = { designs: [], canvases: [], variants: {}, prices: {} };
+      this.config = { designs: [], canvases: [], variants: {}, prices: {}, upload: {} };
     }
 
     this.photoMode = this.config.canvases.length > 0;
+    this.feesEnabled = Boolean(this.config.feeVariant);
 
     this.state = {
       canvasIndex: 0,
       colorwayIndex: 0,
+      sizeIndex: 0,
       garment: 'tee',
       view: 'front',
       color: '#ffffff',
@@ -47,13 +60,15 @@ class KaCustomizer extends HTMLElement {
       selected: null,
     };
 
+    this.pointers = new Map();
+    this.dragBase = null;
+    this.gestureBase = null;
+
     this.stage = this.querySelector('[data-kc-stage]');
     this.placementsEl = this.querySelector('[data-kc-placements]');
     this.tools = this.querySelector('[data-kc-tools]');
     this.photoEl = this.querySelector('[data-kc-photo]');
 
-    // The picker page links here with ?canvas=<handleized name> (or the
-    // legacy ?garment=tee|hoodie).
     const params = new URLSearchParams(window.location.search);
     const requestedCanvas = params.get('canvas') || params.get('garment');
     if (this.photoMode && requestedCanvas) {
@@ -97,12 +112,14 @@ class KaCustomizer extends HTMLElement {
     tray.insertAdjacentHTML(
       'beforeend',
       this.config.designs
-        .map(
-          (d, i) => `
+        .map((d, i) => {
+          const badge = this.feesEnabled && d.price > 0 ? `<span class="kc__design-price">+$${d.price}</span>` : '';
+          return `
         <button type="button" class="kc__design" data-kc-design="${i}" title="${d.label}">
           <img src="${d.src}" alt="${d.label}" loading="lazy" crossorigin="anonymous">
-        </button>`
-        )
+          ${badge}
+        </button>`;
+        })
         .join('')
     );
   }
@@ -118,6 +135,9 @@ class KaCustomizer extends HTMLElement {
 
       const colorwayButton = event.target.closest('[data-kc-colorway]');
       if (colorwayButton) return this.setColorway(Number(colorwayButton.dataset.kcColorway));
+
+      const sizeButton = event.target.closest('[data-kc-size]');
+      if (sizeButton && !sizeButton.disabled) return this.setSize(Number(sizeButton.dataset.kcSize));
 
       const garmentButton = event.target.closest('[data-kc-garment]');
       if (garmentButton) return this.setGarment(garmentButton.dataset.kcGarment);
@@ -138,44 +158,13 @@ class KaCustomizer extends HTMLElement {
       if (event.target.closest('[data-kc-download]')) return this.download();
     });
 
-    // Dragging placements.
-    this.placementsEl.addEventListener('pointerdown', (event) => {
-      const item = event.target.closest('[data-kc-item]');
-      if (!item) return;
-      event.preventDefault();
-      this.select(Number(item.dataset.kcItem));
-      const rect = this.stage.getBoundingClientRect();
-      const placement = this.currentPlacements[this.state.selected];
-      const startX = event.clientX;
-      const startY = event.clientY;
-      const origX = placement.x;
-      const origY = placement.y;
-      this.dragging = true;
+    this.bindPointerEvents();
 
-      const move = (e) => {
-        placement.x = Math.min(95, Math.max(5, origX + ((e.clientX - startX) / rect.width) * 100));
-        placement.y = Math.min(95, Math.max(5, origY + ((e.clientY - startY) / rect.height) * 100));
-        this.renderPlacements();
-      };
-      const up = () => {
-        this.dragging = false;
-        window.removeEventListener('pointermove', move);
-        window.removeEventListener('pointerup', up);
-      };
-      window.addEventListener('pointermove', move);
-      window.addEventListener('pointerup', up);
-    });
-
-    // Deselect when tapping empty stage space.
-    this.stage.addEventListener('pointerdown', (event) => {
-      if (!event.target.closest('[data-kc-item]')) this.select(null);
-    });
-
-    // Subtle perspective tilt.
+    // Subtle perspective tilt (desktop hover only, never during touch).
     const wrap = this.querySelector('[data-kc-tilt]');
-    if (wrap && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    if (wrap && window.matchMedia('(hover: hover) and (prefers-reduced-motion: no-preference)').matches) {
       this.stage.addEventListener('pointermove', (event) => {
-        if (this.dragging) return;
+        if (this.dragBase || this.gestureBase) return;
         const rect = this.stage.getBoundingClientRect();
         const x = (event.clientX - rect.left) / rect.width - 0.5;
         const y = (event.clientY - rect.top) / rect.height - 0.5;
@@ -187,12 +176,92 @@ class KaCustomizer extends HTMLElement {
     }
   }
 
-  /* -- photo mode: canvases & colorways --------------------------------- */
+  /* -- pointer input: drag, and two-finger pinch/rotate ------------------ */
+
+  bindPointerEvents() {
+    this.stage.addEventListener('pointerdown', (event) => {
+      this.pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+
+      const item = event.target.closest('[data-kc-item]');
+      if (item) {
+        event.preventDefault();
+        this.select(Number(item.dataset.kcItem));
+        const placement = this.currentPlacements[this.state.selected];
+        this.dragBase = {
+          pointerId: event.pointerId,
+          x: event.clientX,
+          y: event.clientY,
+          px: placement.x,
+          py: placement.y,
+        };
+      } else if (this.pointers.size === 1) {
+        this.select(null);
+      }
+
+      // Second finger while a design is selected: begin pinch/rotate.
+      if (this.pointers.size === 2 && this.state.selected !== null) {
+        const [a, b] = [...this.pointers.values()];
+        const placement = this.currentPlacements[this.state.selected];
+        if (placement) {
+          this.gestureBase = {
+            dist: Math.hypot(b.x - a.x, b.y - a.y) || 1,
+            angle: (Math.atan2(b.y - a.y, b.x - a.x) * 180) / Math.PI,
+            scale: placement.scale,
+            rot: placement.rot,
+          };
+        }
+      }
+    });
+
+    window.addEventListener('pointermove', (event) => {
+      if (!this.pointers.has(event.pointerId)) return;
+      this.pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+
+      const placement = this.state.selected !== null ? this.currentPlacements[this.state.selected] : null;
+      if (!placement) return;
+
+      if (this.gestureBase && this.pointers.size >= 2) {
+        const [a, b] = [...this.pointers.values()];
+        const dist = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+        const angle = (Math.atan2(b.y - a.y, b.x - a.x) * 180) / Math.PI;
+        placement.scale = Math.min(2.4, Math.max(0.3, this.gestureBase.scale * (dist / this.gestureBase.dist)));
+        placement.rot = Math.round(this.gestureBase.rot + (angle - this.gestureBase.angle));
+        this.renderPlacements();
+        return;
+      }
+
+      if (this.dragBase && event.pointerId === this.dragBase.pointerId) {
+        const rect = this.stage.getBoundingClientRect();
+        placement.x = Math.min(95, Math.max(5, this.dragBase.px + ((event.clientX - this.dragBase.x) / rect.width) * 100));
+        placement.y = Math.min(95, Math.max(5, this.dragBase.py + ((event.clientY - this.dragBase.y) / rect.height) * 100));
+        this.renderPlacements();
+      }
+    });
+
+    const endPointer = (event) => {
+      this.pointers.delete(event.pointerId);
+      if (this.pointers.size < 2) this.gestureBase = null;
+      if (this.dragBase && event.pointerId === this.dragBase.pointerId) {
+        // Hand the drag to a remaining finger, if any.
+        const remaining = [...this.pointers.entries()][0];
+        const placement = this.state.selected !== null ? this.currentPlacements[this.state.selected] : null;
+        this.dragBase = remaining && placement
+          ? { pointerId: remaining[0], x: remaining[1].x, y: remaining[1].y, px: placement.x, py: placement.y }
+          : null;
+      }
+    };
+    window.addEventListener('pointerup', endPointer);
+    window.addEventListener('pointercancel', endPointer);
+  }
+
+  /* -- photo mode: canvases, colorways, sizes ---------------------------- */
 
   setCanvas(index) {
     this.state.canvasIndex = index;
     this.state.colorwayIndex = 0;
     this.state.selected = null;
+    const firstAvailable = this.currentCanvas.variants.findIndex((v) => v.available);
+    this.state.sizeIndex = firstAvailable >= 0 ? firstAvailable : 0;
     if (this.tools) this.tools.hidden = true;
 
     this.querySelectorAll('[data-kc-canvas]').forEach((b) =>
@@ -200,6 +269,7 @@ class KaCustomizer extends HTMLElement {
     );
     this.updatePhoto();
     this.renderColorways();
+    this.renderSizes();
     this.updateCommerce();
     this.renderPlacements();
   }
@@ -208,6 +278,12 @@ class KaCustomizer extends HTMLElement {
     this.state.colorwayIndex = index;
     this.updatePhoto();
     this.renderColorways();
+  }
+
+  setSize(index) {
+    this.state.sizeIndex = index;
+    this.renderSizes();
+    this.updateCommerce();
   }
 
   updatePhoto() {
@@ -232,6 +308,26 @@ class KaCustomizer extends HTMLElement {
         (c, i) => `
       <button type="button" class="kc__colorway" data-kc-colorway="${i}" aria-current="${i === this.state.colorwayIndex}" title="${c.name}">
         <img src="${c.src}" alt="${c.name}" loading="lazy">
+      </button>`
+      )
+      .join('');
+  }
+
+  renderSizes() {
+    const group = this.querySelector('[data-kc-size-group]');
+    const holder = this.querySelector('[data-kc-sizes]');
+    if (!group || !holder) return;
+
+    const variants = this.currentCanvas.variants;
+    const hasSizes = variants.length > 1 || (variants.length === 1 && variants[0].title !== 'Default Title');
+    group.hidden = !hasSizes;
+    if (!hasSizes) return;
+
+    holder.innerHTML = variants
+      .map(
+        (v, i) => `
+      <button type="button" class="kc__size" data-kc-size="${i}" aria-current="${i === this.state.sizeIndex}" ${v.available ? '' : 'disabled'}>
+        ${v.title}
       </button>`
       )
       .join('');
@@ -277,22 +373,32 @@ class KaCustomizer extends HTMLElement {
 
   /* -- commerce ----------------------------------------------------------- */
 
-  currentVariant() {
-    return this.photoMode ? this.currentCanvas.variant : this.config.variants[this.state.garment];
+  selectedVariant() {
+    if (!this.photoMode) return this.config.variants[this.state.garment];
+    const variants = this.currentCanvas.variants;
+    return variants[this.state.sizeIndex]?.id || this.currentCanvas.variant;
   }
 
-  currentPrice() {
-    return this.photoMode ? this.currentCanvas.price : this.config.prices[this.state.garment];
+  basePriceCents() {
+    if (!this.photoMode) return this.config.prices[this.state.garment];
+    const variants = this.currentCanvas.variants;
+    return variants[this.state.sizeIndex]?.price ?? this.currentCanvas.price;
+  }
+
+  feeDollars() {
+    if (!this.feesEnabled || !this.photoMode) return 0;
+    return this.currentPlacements.reduce((sum, p) => sum + Math.max(0, Math.round(this.config.designs[p.design]?.price || 0)), 0);
   }
 
   updateCommerce() {
     const addButton = this.querySelector('[data-kc-add]');
     const note = this.querySelector('[data-kc-note]');
-    const variant = this.currentVariant();
+    const variant = this.selectedVariant();
     if (addButton) addButton.hidden = !variant;
     if (note) note.hidden = Boolean(variant);
     const priceEl = this.querySelector('[data-kc-price]');
-    if (priceEl && this.currentPrice()) priceEl.textContent = money(this.currentPrice());
+    const base = this.basePriceCents();
+    if (priceEl && base != null) priceEl.textContent = money(base + this.feeDollars() * 100);
   }
 
   /* -- placements ------------------------------------------------------- */
@@ -300,6 +406,7 @@ class KaCustomizer extends HTMLElement {
   addPlacement(designIndex) {
     this.currentPlacements.push({ design: designIndex, x: 50, y: 42, scale: 1, rot: 0 });
     this.select(this.currentPlacements.length - 1);
+    this.updateCommerce();
   }
 
   select(index) {
@@ -319,6 +426,7 @@ class KaCustomizer extends HTMLElement {
       this.currentPlacements.splice(this.state.selected, 1);
       this.state.selected = null;
       if (this.tools) this.tools.hidden = true;
+      this.updateCommerce();
     }
     this.renderPlacements();
   }
@@ -361,54 +469,7 @@ class KaCustomizer extends HTMLElement {
     return parts.join(' | ') || 'blank';
   }
 
-  buildProperties() {
-    if (this.photoMode) {
-      const colorway = this.currentCanvas.colorways[this.state.colorwayIndex];
-      return {
-        Product: this.currentCanvas.label,
-        Colorway: colorway?.name || 'Standard',
-        Design: this.summarize(),
-        _config: JSON.stringify({
-          canvas: this.currentCanvas.key,
-          colorway: colorway?.name,
-          placements: this.currentPlacements,
-        }),
-      };
-    }
-    const colorButton = this.querySelector(`[data-kc-color="${this.state.color}"]`);
-    return {
-      Garment: this.state.garment === 'tee' ? 'Tee' : 'Hoodie',
-      Color: colorButton?.getAttribute('aria-label') || this.state.color,
-      Design: this.summarize(),
-      _config: JSON.stringify({
-        color: this.state.color,
-        placements: {
-          [`${this.state.garment}-front`]: this.state.placements[`${this.state.garment}-front`] || [],
-          [`${this.state.garment}-back`]: this.state.placements[`${this.state.garment}-back`] || [],
-        },
-      }),
-    };
-  }
-
-  async addToCart() {
-    const variant = this.currentVariant();
-    if (!variant) return;
-
-    try {
-      const response = await fetch('/cart/add.js', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({ items: [{ id: Number(variant), quantity: 1, properties: this.buildProperties() }] }),
-      });
-      const data = await response.json();
-      if (!response.ok || data.status) throw new Error(data.description || data.message);
-      const cart = await (await fetch('/cart.js')).json();
-      document.dispatchEvent(new CustomEvent('cart:updated', { detail: { cart } }));
-      document.querySelector('cart-drawer')?.open();
-    } catch (error) {
-      console.error('[studio] add to cart failed:', error);
-    }
-  }
+  /* -- preview rendering / persistence ---------------------------------- */
 
   loadImage(src, cors) {
     return new Promise((resolve) => {
@@ -420,7 +481,7 @@ class KaCustomizer extends HTMLElement {
     });
   }
 
-  async download() {
+  async renderPreview() {
     const width = 900;
     let baseImage = null;
     let svgUrl = null;
@@ -428,10 +489,7 @@ class KaCustomizer extends HTMLElement {
     if (this.photoMode) {
       const colorway = this.currentCanvas.colorways[this.state.colorwayIndex];
       baseImage = await this.loadImage(colorway.src, true);
-      if (!baseImage) {
-        console.error('[studio] preview export failed: photo did not load');
-        return;
-      }
+      if (!baseImage) return null;
     } else {
       const svg = this.querySelector('[data-kc-garment-svg]').cloneNode(true);
       svg.querySelectorAll('[data-kc-shape]').forEach((g) => {
@@ -446,6 +504,7 @@ class KaCustomizer extends HTMLElement {
     }
 
     try {
+      if (!baseImage) return null;
       const height = this.photoMode
         ? Math.round(width * (baseImage.naturalHeight / baseImage.naturalWidth))
         : 1080;
@@ -455,7 +514,7 @@ class KaCustomizer extends HTMLElement {
       const ctx = canvas.getContext('2d');
       ctx.fillStyle = '#f5f5f5';
       ctx.fillRect(0, 0, width, height);
-      if (baseImage) ctx.drawImage(baseImage, 0, 0, width, height);
+      ctx.drawImage(baseImage, 0, 0, width, height);
 
       for (const p of this.currentPlacements) {
         const design = this.config.designs[p.design];
@@ -470,16 +529,127 @@ class KaCustomizer extends HTMLElement {
         ctx.drawImage(img, -w / 2, -h / 2, w, h);
         ctx.restore();
       }
-
-      const link = document.createElement('a');
-      link.download = `ka-custom-${this.key}.png`;
-      link.href = canvas.toDataURL('image/png');
-      link.click();
+      return canvas;
     } catch (error) {
-      console.error('[studio] preview export failed:', error);
+      console.error('[studio] preview render failed:', error);
+      return null;
     } finally {
       if (svgUrl) URL.revokeObjectURL(svgUrl);
     }
+  }
+
+  thumbnailDataUrl(canvas) {
+    const thumb = document.createElement('canvas');
+    const width = 320;
+    thumb.width = width;
+    thumb.height = Math.round(width * (canvas.height / canvas.width));
+    thumb.getContext('2d').drawImage(canvas, 0, 0, thumb.width, thumb.height);
+    return thumb.toDataURL('image/jpeg', 0.75);
+  }
+
+  async uploadPreview(canvas) {
+    const { cloud, preset } = this.config.upload;
+    if (!cloud || !preset) return null;
+    try {
+      const body = new FormData();
+      body.append('file', canvas.toDataURL('image/jpeg', 0.85));
+      body.append('upload_preset', preset);
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 10000);
+      const response = await fetch(`https://api.cloudinary.com/v1_1/${cloud}/image/upload`, {
+        method: 'POST',
+        body,
+        signal: controller.signal,
+      });
+      clearTimeout(timer);
+      const data = await response.json();
+      return data.secure_url || null;
+    } catch (error) {
+      console.error('[studio] preview upload failed (order will carry coordinates only):', error);
+      return null;
+    }
+  }
+
+  /* -- cart --------------------------------------------------------------- */
+
+  buildProperties(designId, previewUrl) {
+    const base = this.photoMode
+      ? {
+          Product: this.currentCanvas.label,
+          Colorway: this.currentCanvas.colorways[this.state.colorwayIndex]?.name || 'Standard',
+        }
+      : {
+          Garment: this.state.garment === 'tee' ? 'Tee' : 'Hoodie',
+          Color: this.querySelector(`[data-kc-color="${this.state.color}"]`)?.getAttribute('aria-label') || this.state.color,
+        };
+    return {
+      ...base,
+      Design: this.summarize(),
+      ...(previewUrl ? { 'Design preview': previewUrl } : {}),
+      _design_id: designId,
+      _config: JSON.stringify({
+        canvas: this.photoMode ? this.currentCanvas.key : this.state.garment,
+        colorway: this.photoMode ? this.currentCanvas.colorways[this.state.colorwayIndex]?.name : this.state.color,
+        placements: this.currentPlacements,
+      }),
+    };
+  }
+
+  async addToCart() {
+    const variant = this.selectedVariant();
+    if (!variant) return;
+
+    const addButton = this.querySelector('[data-kc-add]');
+    addButton?.setAttribute('aria-disabled', 'true');
+
+    try {
+      const designId = `kad-${Date.now().toString(36)}${Math.floor(Math.random() * 1e4)}`;
+      const preview = await this.renderPreview();
+      let previewUrl = null;
+      if (preview) {
+        window.themeDesignPreviews?.put(designId, this.thumbnailDataUrl(preview));
+        previewUrl = await this.uploadPreview(preview);
+      }
+
+      const properties = this.buildProperties(designId, previewUrl);
+      const items = [{ id: Number(variant), quantity: 1, properties }];
+
+      const fee = this.feeDollars();
+      if (fee > 0 && this.config.feeVariant) {
+        items.push({
+          id: Number(this.config.feeVariant),
+          quantity: fee,
+          properties: { For: this.currentCanvas.label, _design_id: designId },
+        });
+      }
+
+      const response = await fetch('/cart/add.js', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ items }),
+      });
+      const data = await response.json();
+      if (!response.ok || data.status) throw new Error(data.description || data.message);
+      const cart = await (await fetch('/cart.js')).json();
+      document.dispatchEvent(new CustomEvent('cart:updated', { detail: { cart } }));
+      document.querySelector('cart-drawer')?.open();
+    } catch (error) {
+      console.error('[studio] add to cart failed:', error);
+    } finally {
+      addButton?.removeAttribute('aria-disabled');
+    }
+  }
+
+  async download() {
+    const canvas = await this.renderPreview();
+    if (!canvas) {
+      console.error('[studio] preview export failed');
+      return;
+    }
+    const link = document.createElement('a');
+    link.download = `ka-custom-${this.key}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
   }
 }
 
