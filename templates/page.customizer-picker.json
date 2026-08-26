@@ -1,9 +1,89 @@
+/*
+ * ------------------------------------------------------------
+ * IMPORTANT: The contents of this file are auto-generated.
+ *
+ * This file may be updated by the Shopify admin theme editor
+ * or related systems. Please exercise caution as any changes
+ * made to this file may be overwritten.
+ * ------------------------------------------------------------
+ */
 {
   "sections": {
     "main": {
       "type": "main-customizer-picker",
-      "settings": {}
+      "blocks": {
+        "product_MVLbHr": {
+          "type": "product",
+          "settings": {
+            "garment": "tee",
+            "label": "Classic Tee",
+            "image": "shopify://shop_images/IMG_1444.jpg"
+          }
+        },
+        "product_VqEexT": {
+          "type": "product",
+          "settings": {
+            "garment": "hoodie",
+            "label": "Classic Hoodie",
+            "image": "shopify://shop_images/IMG_1334.jpg"
+          }
+        },
+        "product_DdtMGw": {
+          "type": "product",
+          "settings": {
+            "garment": "tee",
+            "label": "Classic Polo",
+            "image": "shopify://shop_images/IMG_1433.jpg"
+          }
+        },
+        "product_zAVEbD": {
+          "type": "product",
+          "settings": {
+            "garment": "tee",
+            "label": "Classic Sweater",
+            "image": "shopify://shop_images/IMG_1439.jpg"
+          }
+        },
+        "product_Mr4TY9": {
+          "type": "product",
+          "settings": {
+            "garment": "hoodie",
+            "label": "Washed Hoodie",
+            "image": "shopify://shop_images/IMG_1413_fc522466-4295-47a9-8832-1ddbefa9059b.jpg"
+          }
+        }
+      },
+      "block_order": [
+        "product_MVLbHr",
+        "product_VqEexT",
+        "product_DdtMGw",
+        "product_zAVEbD",
+        "product_Mr4TY9"
+      ],
+      "settings": {
+        "heading": "Choose your canvas",
+        "subtext": "Pick the piece you want to customize — then make it yours in the design studio.",
+        "tee_row_heading": "Shirts",
+        "hoodie_row_heading": "Hoodies",
+        "card_cta": "Customize this",
+        "designer_url": ""
+      }
+    },
+    "featured_collection_VzT9CH": {
+      "type": "featured-collection",
+      "name": "Featured collection",
+      "settings": {
+        "heading": "New arrivals",
+        "collection": "",
+        "products_to_show": 12,
+        "columns": 4,
+        "show_filters": true,
+        "show_new_badge": true
+      }
     }
   },
-  "order": ["main"]
+  "order": [
+    "main",
+    "featured_collection_VzT9CH"
+  ]
 }
