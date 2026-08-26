@@ -34,6 +34,15 @@ class KaCustomizer extends HTMLElement {
     this.placementsEl = this.querySelector('[data-kc-placements]');
     this.tools = this.querySelector('[data-kc-tools]');
 
+    // The picker page links here with ?garment=tee|hoodie preselected.
+    const requested = new URLSearchParams(window.location.search).get('garment');
+    if (requested === 'tee' || requested === 'hoodie') {
+      this.state.garment = requested;
+      this.querySelectorAll('[data-kc-garment]').forEach((b) =>
+        b.setAttribute('aria-current', b.dataset.kcGarment === requested ? 'true' : 'false')
+      );
+    }
+
     this.renderDesignTray();
     this.updateGarment();
     this.updateCommerce();

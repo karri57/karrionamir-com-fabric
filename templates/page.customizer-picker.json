@@ -1,0 +1,9 @@
+{
+  "sections": {
+    "main": {
+      "type": "main-customizer-picker",
+      "settings": {}
+    }
+  },
+  "order": ["main"]
+}

@@ -1,0 +1,135 @@
+{%- comment -%}
+  "Choose your canvas" picker: rows of garments to customize. Each card
+  plays the same auto design-showcase animation as the home page promo
+  (compact mode), and clicking a card opens the designer with that
+  garment preselected via ?garment=.
+{%- endcomment -%}
+
+{%- liquid
+  assign designer_url = section.settings.designer_url | default: '/pages/designer'
+-%}
+
+<div class="page-width section picker">
+  <div class="picker__header">
+    <h1 class="picker__title">{{ section.settings.heading }}</h1>
+    {%- if section.settings.subtext != blank -%}
+      <p class="picker__subtext">{{ section.settings.subtext }}</p>
+    {%- endif -%}
+  </div>
+
+  {%- assign garments = 'tee,hoodie' | split: ',' -%}
+  {%- for garment in garments -%}
+    {%- liquid
+      assign row_heading = section.settings.tee_row_heading
+      if garment == 'hoodie'
+        assign row_heading = section.settings.hoodie_row_heading
+      endif
+
+      assign has_cards = false
+      for block in section.blocks
+        if block.type == 'product' and block.settings.garment == garment and block.settings.image != blank
+          assign has_cards = true
+        endif
+      endfor
+    -%}
+
+    {%- if has_cards -%}
+      <div class="picker__row">
+        <h2 class="picker__row-heading">{{ row_heading }}</h2>
+        <div class="picker__grid">
+          {%- for block in section.blocks -%}
+            {%- if block.type == 'product' and block.settings.garment == garment and block.settings.image != blank -%}
+              <a href="{{ designer_url }}?garment={{ garment }}" class="picker-card" {{ block.shopify_attributes }}>
+                <showcase-demo class="showcase picker-card__media" data-compact>
+                  <script type="application/json" data-demo-designs>
+                    [
+                      {%- for design_block in section.blocks -%}
+                        {%- if design_block.type == 'design' and design_block.settings.image != blank -%}
+                          { "src": {{ design_block.settings.image | image_url: width: 240 | json }} },
+                        {%- endif -%}
+                      {%- endfor -%}
+                      null
+                    ]
+                  </script>
+                  <div class="showcase__stage" data-demo-stage>
+                    <img
+                      src="{{ block.settings.image | image_url: width: 600 }}"
+                      alt="{{ block.settings.label | escape }}"
+                      width="600"
+                      height="{{ 600 | divided_by: block.settings.image.aspect_ratio | default: 750 }}"
+                      class="showcase__shirt"
+                      loading="lazy"
+                      draggable="false"
+                    >
+                    <div class="showcase__layer" data-demo-placements></div>
+                  </div>
+                  <div class="showcase__cursor showcase__cursor--small" data-demo-cursor aria-hidden="true">
+                    <svg viewBox="0 0 24 24" width="20" height="20">
+                      <path d="M4 2 L4 20 L9 15.5 L12.5 22 L15.5 20.5 L12 14 L19 13.5 Z" fill="#111" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/>
+                    </svg>
+                  </div>
+                </showcase-demo>
+                <div class="picker-card__label">{{ block.settings.label }}</div>
+                <span class="picker-card__cta">{{ section.settings.card_cta }}</span>
+              </a>
+            {%- endif -%}
+          {%- endfor -%}
+        </div>
+      </div>
+    {%- endif -%}
+  {%- endfor -%}
+
+  {%- assign has_products = false -%}
+  {%- for block in section.blocks -%}
+    {%- if block.type == 'product' and block.settings.image != blank -%}
+      {%- assign has_products = true -%}
+    {%- endif -%}
+  {%- endfor -%}
+  {%- unless has_products -%}
+    <p class="kc__empty">Add garment blocks (with photos) to this section in the theme editor to build the picker.</p>
+  {%- endunless -%}
+</div>
+
+<script src="{{ 'customizer-promo.js' | asset_url }}" type="module"></script>
+
+{% schema %}
+{
+  "name": "Customizer picker",
+  "settings": [
+    { "type": "text", "id": "heading", "label": "Heading", "default": "Choose your canvas" },
+    { "type": "textarea", "id": "subtext", "label": "Subtext", "default": "Pick the piece you want to customize — then make it yours in the design studio." },
+    { "type": "text", "id": "tee_row_heading", "label": "Shirts row heading", "default": "Shirts" },
+    { "type": "text", "id": "hoodie_row_heading", "label": "Hoodies row heading", "default": "Hoodies" },
+    { "type": "text", "id": "card_cta", "label": "Card call to action", "default": "Customize this" },
+    { "type": "url", "id": "designer_url", "label": "Designer page", "info": "Defaults to /pages/designer" }
+  ],
+  "blocks": [
+    {
+      "type": "product",
+      "name": "Garment",
+      "settings": [
+        {
+          "type": "select",
+          "id": "garment",
+          "label": "Garment type",
+          "options": [
+            { "value": "tee", "label": "Shirt" },
+            { "value": "hoodie", "label": "Hoodie" }
+          ],
+          "default": "tee"
+        },
+        { "type": "text", "id": "label", "label": "Name", "default": "Classic Tee" },
+        { "type": "image_picker", "id": "image", "label": "Photo", "info": "Plain, front-facing photo (flat lay works best) — the design animation plays on top of it." }
+      ]
+    },
+    {
+      "type": "design",
+      "name": "Design",
+      "settings": [
+        { "type": "text", "id": "label", "label": "Name", "default": "Logo" },
+        { "type": "image_picker", "id": "image", "label": "Design image", "info": "Transparent PNGs work best. Shared by every card's animation." }
+      ]
+    }
+  ]
+}
+{% endschema %}

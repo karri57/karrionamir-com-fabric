@@ -18,47 +18,53 @@
 
     <div class="customizer-promo__visual">
       {%- if section.settings.shirt_image != blank -%}
-        <promo-demo class="promo-demo">
-          <div class="promo-demo__stage" data-promo-stage>
+        <showcase-demo class="showcase">
+          <script type="application/json" data-demo-designs>
+            [
+              {%- for block in section.blocks -%}
+                {%- if block.type == 'design' and block.settings.image != blank -%}
+                  { "src": {{ block.settings.image | image_url: width: 300 | json }} },
+                {%- endif -%}
+              {%- endfor -%}
+              null
+            ]
+          </script>
+
+          <div class="showcase__stage" data-demo-stage>
             <img
               src="{{ section.settings.shirt_image | image_url: width: 900 }}"
               alt="{{ section.settings.shirt_image.alt | escape }}"
               width="900"
               height="{{ 900 | divided_by: section.settings.shirt_image.aspect_ratio | default: 900 }}"
-              class="promo-demo__shirt"
+              class="showcase__shirt"
               draggable="false"
             >
-            <div class="promo-demo__placements" data-promo-placements></div>
-            <p class="promo-demo__hint" data-promo-hint>{{ 'sections.customizer_promo.drag_hint' | t }}</p>
+            <div class="showcase__layer" data-demo-placements></div>
           </div>
 
-          <div class="promo-demo__tray-row">
-            <div class="promo-demo__tray" data-promo-tray>
-              {%- for block in section.blocks -%}
-                {%- if block.type == 'design' and block.settings.image != blank -%}
-                  <button
-                    type="button"
-                    class="promo-demo__design"
-                    data-promo-design
-                    data-src="{{ block.settings.image | image_url: width: 300 }}"
-                    aria-label="{{ block.settings.label | default: 'Design' }}"
-                    {{ block.shopify_attributes }}
+          <div class="showcase__tray" aria-hidden="true">
+            {%- for block in section.blocks -%}
+              {%- if block.type == 'design' and block.settings.image != blank -%}
+                <span class="showcase__chip" data-demo-chip {{ block.shopify_attributes }}>
+                  <img
+                    src="{{ block.settings.image | image_url: width: 150 }}"
+                    alt=""
+                    width="150"
+                    height="{{ 150 | divided_by: block.settings.image.aspect_ratio | default: 150 }}"
+                    loading="lazy"
+                    draggable="false"
                   >
-                    <img
-                      src="{{ block.settings.image | image_url: width: 150 }}"
-                      alt="{{ block.settings.label }}"
-                      width="150"
-                      height="{{ 150 | divided_by: block.settings.image.aspect_ratio | default: 150 }}"
-                      loading="lazy"
-                      draggable="false"
-                    >
-                  </button>
-                {%- endif -%}
-              {%- endfor -%}
-            </div>
-            <button type="button" class="promo-demo__clear" data-promo-clear>{{ 'sections.customizer_promo.clear' | t }}</button>
+                </span>
+              {%- endif -%}
+            {%- endfor -%}
           </div>
-        </promo-demo>
+
+          <div class="showcase__cursor" data-demo-cursor aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="26" height="26">
+              <path d="M4 2 L4 20 L9 15.5 L12.5 22 L15.5 20.5 L12 14 L19 13.5 Z" fill="#111" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        </showcase-demo>
 
         <script src="{{ 'customizer-promo.js' | asset_url }}" type="module"></script>
       {%- elsif section.settings.image != blank -%}
@@ -94,8 +100,8 @@
     {
       "type": "image_picker",
       "id": "shirt_image",
-      "label": "Shirt photo (interactive demo)",
-      "info": "A plain, front-facing photo of a blank shirt (flat lay or on a mannequin works best). When set, this becomes a live drag-and-drop demo using the designs below instead of a static image."
+      "label": "Shirt photo (auto-playing demo)",
+      "info": "A plain, front-facing photo of a blank shirt (flat lay works best). When set, an animated cursor automatically places the designs below onto the shirt in a loop, like a video."
     },
     {
       "type": "image_picker",
