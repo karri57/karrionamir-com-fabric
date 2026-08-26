@@ -45,6 +45,14 @@
         {%- for block in section.blocks -%}
           {%- if block.type == 'canvas' and block.settings.photo_1 != blank -%}
             {%- assign canvas_variant = block.settings.product.selected_or_first_available_variant -%}
+            {%- assign back_1 = '' -%}
+            {%- if block.settings.photo_1_back != blank -%}{%- assign back_1 = block.settings.photo_1_back | image_url: width: 900 -%}{%- endif -%}
+            {%- assign back_2 = '' -%}
+            {%- if block.settings.photo_2_back != blank -%}{%- assign back_2 = block.settings.photo_2_back | image_url: width: 900 -%}{%- endif -%}
+            {%- assign back_3 = '' -%}
+            {%- if block.settings.photo_3_back != blank -%}{%- assign back_3 = block.settings.photo_3_back | image_url: width: 900 -%}{%- endif -%}
+            {%- assign back_4 = '' -%}
+            {%- if block.settings.photo_4_back != blank -%}{%- assign back_4 = block.settings.photo_4_back | image_url: width: 900 -%}{%- endif -%}
             {
               "key": {{ block.settings.label | handleize | json }},
               "label": {{ block.settings.label | json }},
@@ -65,27 +73,27 @@
                 {
                   "name": {{ block.settings.color_1_name | default: 'Standard' | json }},
                   "front": {{ block.settings.photo_1 | image_url: width: 900 | json }},
-                  "back": {{ block.settings.photo_1_back | image_url: width: 900 | json }}
+                  "back": {{ back_1 | json }}
                 },
                 {%- if block.settings.photo_2 != blank -%}
                   {
                     "name": {{ block.settings.color_2_name | default: 'Colorway 2' | json }},
                     "front": {{ block.settings.photo_2 | image_url: width: 900 | json }},
-                    "back": {{ block.settings.photo_2_back | image_url: width: 900 | json }}
+                    "back": {{ back_2 | json }}
                   },
                 {%- endif -%}
                 {%- if block.settings.photo_3 != blank -%}
                   {
                     "name": {{ block.settings.color_3_name | default: 'Colorway 3' | json }},
                     "front": {{ block.settings.photo_3 | image_url: width: 900 | json }},
-                    "back": {{ block.settings.photo_3_back | image_url: width: 900 | json }}
+                    "back": {{ back_3 | json }}
                   },
                 {%- endif -%}
                 {%- if block.settings.photo_4 != blank -%}
                   {
                     "name": {{ block.settings.color_4_name | default: 'Colorway 4' | json }},
                     "front": {{ block.settings.photo_4 | image_url: width: 900 | json }},
-                    "back": {{ block.settings.photo_4_back | image_url: width: 900 | json }}
+                    "back": {{ back_4 | json }}
                   },
                 {%- endif -%}
                 null
