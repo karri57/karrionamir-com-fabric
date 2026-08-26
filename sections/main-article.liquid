@@ -1,0 +1,26 @@
+<div class="page-width section">
+  <article style="max-width: 42rem; margin-inline: auto;">
+    <p class="breadcrumb"><a href="{{ blog.url }}">{{ 'blogs.article.back_to_blog' | t: blog: blog.title }}</a></p>
+    <h1 class="section__heading" style="margin-bottom: 0.5rem;">{{ article.title }}</h1>
+    <p style="font-size: 0.85rem; color: rgb(from var(--color-fg) r g b / 60%); margin-bottom: 2rem;">
+      {{ article.published_at | date: '%B %d, %Y' }}{% if article.author != blank %} &middot; {{ article.author }}{% endif %}
+    </p>
+
+    {%- if article.image -%}
+      <div class="article-card__media" style="margin-bottom: 2rem;">
+        <img src="{{ article.image | image_url: width: 1200 }}" alt="{{ article.image.alt | escape }}" width="1200" height="750" loading="eager">
+      </div>
+    {%- endif -%}
+
+    <div class="rich-text" style="max-width: none;">
+      {{ article.content }}
+    </div>
+  </article>
+</div>
+
+{% schema %}
+{
+  "name": "Article",
+  "settings": []
+}
+{% endschema %}

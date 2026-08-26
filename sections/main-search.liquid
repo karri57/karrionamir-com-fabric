@@ -1,0 +1,44 @@
+<div class="page-width section">
+  <form action="{{ routes.search_url }}" method="get" role="search" style="max-width: 28rem; margin-bottom: 2rem;">
+    <input type="hidden" name="type" value="product">
+    <div class="field">
+      <input
+        type="search"
+        name="q"
+        class="field__input"
+        value="{{ search.terms | escape }}"
+        placeholder="{{ 'general.search.placeholder' | t }}"
+        aria-label="{{ 'general.search.placeholder' | t }}"
+      >
+    </div>
+  </form>
+
+  {%- if search.performed -%}
+    <p class="breadcrumb">
+      {%- if search.results_count > 0 -%}
+        {{ 'general.search.results_for' | t: terms: search.terms }}
+        &middot;
+        {{ 'general.search.results_count' | t: count: search.results_count }}
+      {%- else -%}
+        {{ 'general.search.no_results' | t: terms: search.terms }}
+      {%- endif -%}
+    </p>
+
+    {%- if search.results_count > 0 -%}
+      <div class="product-grid" style="--grid-columns: 4;">
+        {%- for item in search.results -%}
+          {%- if item.object_type == 'product' -%}
+            {%- render 'product-card', product: item -%}
+          {%- endif -%}
+        {%- endfor -%}
+      </div>
+    {%- endif -%}
+  {%- endif -%}
+</div>
+
+{% schema %}
+{
+  "name": "Search results",
+  "settings": []
+}
+{% endschema %}

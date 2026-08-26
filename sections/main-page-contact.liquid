@@ -1,0 +1,33 @@
+<div class="page-width section">
+  <h1 class="section__heading" style="margin-bottom: 1rem;">{{ page.title }}</h1>
+  <div class="rich-text" style="margin-bottom: 2rem;">{{ page.content }}</div>
+
+  {%- form 'contact', id: 'ContactForm' -%}
+    {%- if form.posted_successfully? -%}
+      <p class="cart-drawer__note-text" style="margin-bottom: 1.5rem;">Thanks — we'll be in touch soon.</p>
+    {%- endif -%}
+
+    <div style="display: grid; gap: 1rem; max-width: 32rem;">
+      <div class="field">
+        <label class="field__label" for="ContactFormName">Name</label>
+        <input type="text" class="field__input" id="ContactFormName" name="contact[name]" value="{{ form.name }}">
+      </div>
+      <div class="field">
+        <label class="field__label" for="ContactFormEmail">Email</label>
+        <input type="email" class="field__input" id="ContactFormEmail" name="contact[email]" value="{{ form.email }}" required>
+      </div>
+      <div class="field">
+        <label class="field__label" for="ContactFormMessage">Message</label>
+        <textarea class="field__input" id="ContactFormMessage" name="contact[body]" rows="5">{{ form.body }}</textarea>
+      </div>
+      <button type="submit" class="button" style="width: fit-content;">Send</button>
+    </div>
+  {%- endform -%}
+</div>
+
+{% schema %}
+{
+  "name": "Contact page",
+  "settings": []
+}
+{% endschema %}

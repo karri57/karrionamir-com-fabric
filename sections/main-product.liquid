@@ -1,0 +1,117 @@
+{%- liquid
+  assign product = product
+  assign current_variant = product.selected_or_first_available_variant
+-%}
+
+<div class="product page-width section">
+  <product-gallery>
+    <div class="product__gallery-main" data-gallery-main>
+      {%- if product.featured_media -%}
+        <img
+          src="{{ product.featured_media.preview_image | image_url: width: 800 }}"
+          alt="{{ product.featured_media.alt | escape }}"
+          width="800"
+          height="{{ 800 | divided_by: product.featured_media.preview_image.aspect_ratio | default: 1000 }}"
+          loading="eager"
+          fetchpriority="high"
+        >
+      {%- endif -%}
+    </div>
+
+    {%- if product.media.size > 1 -%}
+      <div class="product__thumbnails">
+        {%- for media in product.media -%}
+          <button
+            type="button"
+            class="product__thumbnail"
+            data-thumbnail
+            data-full-src="{{ media.preview_image | image_url: width: 800 }}"
+            data-alt="{{ media.alt | escape }}"
+            aria-current="{% if forloop.first %}true{% else %}false{% endif %}"
+          >
+            <img src="{{ media.preview_image | image_url: width: 150 }}" alt="" width="72" height="90" loading="lazy">
+          </button>
+        {%- endfor -%}
+      </div>
+    {%- endif -%}
+  </product-gallery>
+
+  <div class="product__info">
+    <h1 class="product__title">{{ product.title }}</h1>
+
+    <div class="product__price">
+      {%- render 'price', product: current_variant -%}
+    </div>
+
+    <product-form>
+      <form action="{{ routes.cart_add_url }}" method="post" enctype="multipart/form-data">
+        <input type="hidden" name="id" value="{{ current_variant.id }}">
+
+        {%- if product.has_only_default_variant == false -%}
+          <variant-picker>
+            <script type="application/json" data-variant-json>
+              {{ product.variants | json }}
+            </script>
+
+            {%- for option in product.options_with_values -%}
+              <fieldset class="product__option" data-option-index="{{ forloop.index0 }}">
+                <span class="product__option-name">{{ option.name }}</span>
+                <div class="swatch-list">
+                  {%- for value in option.values -%}
+                    <label class="swatch" data-value="{{ value | escape }}" aria-current="{% if current_variant.options[forloop.parentloop.index0] == value %}true{% else %}false{% endif %}">
+                      <input
+                        type="radio"
+                        name="option-{{ forloop.parentloop.index0 }}"
+                        value="{{ value | escape }}"
+                        class="visually-hidden"
+                        {% if current_variant.options[forloop.parentloop.index0] == value %}checked{% endif %}
+                      >
+                      {{ value }}
+                    </label>
+                  {%- endfor -%}
+                </div>
+              </fieldset>
+            {%- endfor -%}
+          </variant-picker>
+        {%- endif -%}
+
+        <div class="product__form-row">
+          <quantity-input>
+            <div class="quantity-selector">
+              <button type="button" data-step="-1" aria-label="Decrease quantity">&minus;</button>
+              <input type="number" name="quantity" value="1" min="1" aria-label="{{ 'products.product.quantity' | t }}">
+              <button type="button" data-step="1" aria-label="Increase quantity">+</button>
+            </div>
+          </quantity-input>
+        </div>
+
+        <span class="form-error" data-form-error hidden></span>
+
+        <button
+          type="submit"
+          class="button button--full"
+          {% unless current_variant.available %}aria-disabled="true"{% endunless %}
+        >
+          {%- if current_variant.available -%}
+            {{ 'products.product.add_to_cart' | t }}
+          {%- else -%}
+            {{ 'products.product.sold_out' | t }}
+          {%- endif -%}
+        </button>
+      </form>
+    </product-form>
+
+    {%- if product.description != blank -%}
+      <div class="product__description rich-text">
+        {{ product.description }}
+      </div>
+    {%- endif -%}
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "Product information",
+  "settings": []
+}
+{% endschema %}

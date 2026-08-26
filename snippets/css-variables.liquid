@@ -1,0 +1,30 @@
+{%- doc -%}
+  Renders theme setting values as CSS custom properties on :root.
+  @example
+  {% render 'css-variables' %}
+{%- enddoc -%}
+
+{% style %}
+  :root {
+    --color-bg: {{ settings.color_background }};
+    --color-fg: {{ settings.color_foreground }};
+    --color-border: {{ settings.color_border }};
+    --color-surface: {{ settings.color_surface }};
+    --color-sale: {{ settings.color_sale }};
+
+    --font-heading: {{ settings.font_heading.family }}, {{ settings.font_heading.fallback_families }};
+    --font-heading-weight: {{ settings.font_heading.weight }};
+    --font-heading-style: {{ settings.font_heading.style }};
+
+    --font-body: {{ settings.font_body.family }}, {{ settings.font_body.fallback_families }};
+    --font-body-weight: {{ settings.font_body.weight }};
+    --font-body-style: {{ settings.font_body.style }};
+
+    --page-width: {{ settings.page_width }}px;
+    --space-section: {{ settings.spacing_sections }}px;
+    --radius: {{ settings.corner_radius }}px;
+  }
+{% endstyle %}
+
+{{ settings.font_heading | font_face: font_display: 'swap' }}
+{{ settings.font_body | font_face: font_display: 'swap' }}
