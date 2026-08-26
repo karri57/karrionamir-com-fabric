@@ -1440,6 +1440,7 @@ p {
 
 .customizer-promo__inner {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 2.5rem;
   align-items: center;
 }
@@ -1748,6 +1749,7 @@ p {
 
 .kc__layout {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 2rem;
 }
 
@@ -1756,6 +1758,10 @@ p {
     grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
     align-items: start;
   }
+}
+
+.kc__stage-column {
+  min-width: 0;
 }
 
 .kc__toolbar {
