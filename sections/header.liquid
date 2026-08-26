@@ -31,6 +31,14 @@
     </div>
   </div>
 
+  {%- if section.settings.show_nav_bar and section.settings.menu.links.size > 0 -%}
+    <nav class="header__nav-bar" aria-label="Categories">
+      {%- for link in section.settings.menu.links -%}
+        <a href="{{ link.url }}" class="header__nav-bar-link"{% if link.active %} aria-current="page"{% endif %}>{{ link.title }}</a>
+      {%- endfor -%}
+    </nav>
+  {%- endif -%}
+
   <mobile-menu id="mobile-menu" class="mobile-menu">
     <div class="mobile-menu__header">
       <button type="button" data-close aria-label="{{ 'general.menu.close' | t }}">
@@ -60,6 +68,12 @@
       "type": "checkbox",
       "id": "sticky",
       "label": "Sticky header",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_nav_bar",
+      "label": "Show category bar under header",
       "default": true
     }
   ]

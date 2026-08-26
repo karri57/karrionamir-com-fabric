@@ -4,6 +4,10 @@
   {% render 'cart-drawer' %}
 {%- enddoc -%}
 
+{%- liquid
+  assign threshold_cents = settings.free_shipping_threshold | times: 100
+-%}
+
 <cart-drawer class="cart-drawer" id="cart-drawer" role="dialog" aria-modal="true" aria-label="{{ 'general.cart.title' | t }}">
   <div class="cart-drawer__backdrop" data-close></div>
   <div class="cart-drawer__panel">
@@ -12,57 +16,91 @@
       <button type="button" data-close aria-label="{{ 'general.cart.close' | t }}">{% render 'icon', name: 'close' %}</button>
     </div>
 
-    <div class="cart-drawer__items" data-cart-items>
-      {%- if cart.item_count == 0 -%}
-        <div class="cart-empty">
-          <p>{{ 'general.cart.empty' | t }}</p>
-          <a href="{{ routes.all_products_collection_url }}" class="button button--secondary" data-close>{{ 'general.cart.empty_link' | t }}</a>
+    {%- if settings.free_shipping_threshold > 0 -%}
+      <div class="cart-shipping-bar" data-shipping-bar data-threshold="{{ threshold_cents }}">
+        {%- liquid
+          assign remaining = threshold_cents | minus: cart.total_price
+          assign progress = cart.total_price | times: 100 | divided_by: threshold_cents
+          if progress > 100
+            assign progress = 100
+          endif
+        -%}
+        <p class="cart-shipping-bar__text" data-shipping-text>
+          {%- if remaining > 0 -%}
+            {{ 'general.cart.free_shipping_progress_html' | t: amount: remaining | money }}
+          {%- else -%}
+            {{ 'general.cart.free_shipping_unlocked' | t }}
+          {%- endif -%}
+        </p>
+        <div class="cart-shipping-bar__track">
+          <div class="cart-shipping-bar__fill" data-shipping-fill style="width: {{ progress }}%;"></div>
         </div>
-      {%- else -%}
-        {%- for item in cart.items -%}
-          <div class="cart-item">
-            <a href="{{ item.url }}" class="cart-item__media">
-              {%- if item.image -%}
-                <img src="{{ item.image | image_url: width: 180 }}" alt="{{ item.product_title | escape }}" width="90" height="112" loading="lazy">
-              {%- endif -%}
-            </a>
-            <div class="cart-item__details">
-              <a href="{{ item.url }}" class="cart-item__title">{{ item.product_title }}</a>
-              {%- unless item.variant.title == 'Default Title' -%}
-                <div class="cart-item__variant">{{ item.variant.title }}</div>
-              {%- endunless -%}
-              <form data-cart-update>
-                <input type="hidden" name="id" value="{{ item.key }}">
-                <quantity-input>
-                  <div class="quantity-selector">
-                    <button type="button" data-step="-1" aria-label="Decrease quantity">&minus;</button>
-                    <input type="number" name="quantity" value="{{ item.quantity }}" min="0" aria-label="{{ 'general.cart.quantity' | t }}">
-                    <button type="button" data-step="1" aria-label="Increase quantity">+</button>
-                  </div>
-                </quantity-input>
-              </form>
-            </div>
-            <div class="cart-item__end">
-              <div class="cart-item__price">{{ item.final_line_price | money }}</div>
-              <button type="button" class="cart-item__remove" data-cart-remove="{{ item.key }}">{{ 'general.cart.remove' | t }}</button>
-            </div>
+      </div>
+    {%- endif -%}
+
+    <div class="cart-drawer__body">
+      <div class="cart-drawer__items" data-cart-items>
+        {%- if cart.item_count == 0 -%}
+          <div class="cart-empty">
+            <p>{{ 'general.cart.empty' | t }}</p>
+            <a href="{{ routes.all_products_collection_url }}" class="button button--secondary" data-close>{{ 'general.cart.empty_link' | t }}</a>
           </div>
-        {%- endfor -%}
-      {%- endif -%}
+        {%- else -%}
+          {%- for item in cart.items -%}
+            <div class="cart-item">
+              <a href="{{ item.url }}" class="cart-item__media">
+                {%- if item.image -%}
+                  <img src="{{ item.image | image_url: width: 200 }}" alt="{{ item.product_title | escape }}" width="100" height="125" loading="lazy">
+                {%- endif -%}
+              </a>
+              <div class="cart-item__info">
+                <a href="{{ item.url }}" class="cart-item__title">{{ item.product_title }}</a>
+                <div class="cart-item__price">{{ item.final_line_price | money }}</div>
+                {%- unless item.variant.title == 'Default Title' -%}
+                  <div class="cart-item__variant">
+                    {%- for option in item.options_with_values -%}
+                      {{ option.name }}: {{ option.value }}{% unless forloop.last %} &middot; {% endunless %}
+                    {%- endfor -%}
+                  </div>
+                {%- endunless -%}
+                <div class="cart-item__controls">
+                  <form data-cart-update>
+                    <input type="hidden" name="id" value="{{ item.key }}">
+                    <quantity-input>
+                      <div class="quantity-selector">
+                        <button type="button" data-step="-1" aria-label="Decrease quantity">&minus;</button>
+                        <input type="number" name="quantity" value="{{ item.quantity }}" min="0" aria-label="{{ 'general.cart.quantity' | t }}">
+                        <button type="button" data-step="1" aria-label="Increase quantity">+</button>
+                      </div>
+                    </quantity-input>
+                  </form>
+                  <button type="button" class="cart-item__remove" data-cart-remove="{{ item.key }}" aria-label="{{ 'general.cart.remove' | t }}">
+                    {% render 'icon', name: 'delete' %}
+                  </button>
+                </div>
+              </div>
+            </div>
+          {%- endfor -%}
+        {%- endif -%}
+      </div>
+
+      <div class="cart-upsell" data-cart-upsell hidden>
+        <h3 class="cart-upsell__heading">{{ 'general.cart.complete_outfit' | t }}</h3>
+        <div class="cart-upsell__items" data-cart-upsell-items></div>
+      </div>
     </div>
 
     <div class="cart-drawer__footer" data-cart-footer{% if cart.item_count == 0 %} hidden{% endif %}>
-      {%- if settings.cart_show_note -%}
-        <p class="cart-drawer__note-text">{{ 'general.cart.note' | t }}</p>
-      {%- endif -%}
-      <div class="cart-drawer__subtotal">
-        <span>{{ 'general.cart.subtotal' | t }}</span>
-        <span data-cart-subtotal>{{ cart.total_price | money }}</span>
-      </div>
-      <p class="cart-drawer__note-text">{{ 'general.cart.shipping_note' | t }}</p>
+      <p class="cart-drawer__tax-note">{{ 'products.product.tax_note' | t }}</p>
       <form action="{{ routes.cart_url }}" method="post">
-        <button type="submit" name="checkout" class="button button--full">{{ 'general.cart.checkout' | t }}</button>
+        <button type="submit" name="checkout" class="button button--full cart-drawer__checkout">
+          {{ 'general.cart.checkout' | t }}
+          <span aria-hidden="true">&bull;</span>
+          <span data-checkout-total>{{ cart.total_price | money }}</span>
+        </button>
       </form>
     </div>
   </div>
+
+  <template data-icon-delete>{% render 'icon', name: 'delete' %}</template>
 </cart-drawer>

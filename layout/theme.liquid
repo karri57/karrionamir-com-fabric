@@ -18,7 +18,10 @@
         cartEmpty: {{ 'general.cart.empty' | t | json }},
         cartEmptyLink: {{ 'general.cart.empty_link' | t | json }},
         cartRemove: {{ 'general.cart.remove' | t | json }},
-        genericError: {{ 'general.cart.error' | t | json }}
+        genericError: {{ 'general.cart.error' | t | json }},
+        freeShippingProgress: {{ 'general.cart.free_shipping_progress_html' | t: amount: '[amount]' | json }},
+        freeShippingUnlocked: {{ 'general.cart.free_shipping_unlocked' | t | json }},
+        addLabel: {{ 'general.cart.add' | t | json }}
       };
     </script>
     <script src="{{ 'theme.js' | asset_url }}" type="module"></script>

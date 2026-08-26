@@ -23,6 +23,7 @@
     "corner_radius": 2,
     "cart_type": "drawer",
     "cart_show_note": true,
+    "free_shipping_threshold": 150,
     "newsletter_discount_percent": 10,
     "sections": {
       "header": {

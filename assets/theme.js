@@ -102,6 +102,12 @@ class CartDrawer extends HTMLElement {
       event.preventDefault();
       this.updateLine(removeButton.dataset.cartRemove, 0);
     });
+
+    // Populate "complete your outfit" for the server-rendered initial state.
+    fetch('/cart.js')
+      .then((r) => r.json())
+      .then((cart) => this.renderUpsell(cart))
+      .catch(() => {});
   }
 
   open() {
@@ -128,11 +134,15 @@ class CartDrawer extends HTMLElement {
   render(cart) {
     const itemsEl = this.querySelector('[data-cart-items]');
     const footerEl = this.querySelector('[data-cart-footer]');
-    const countEls = document.querySelectorAll('[data-cart-count]');
-    countEls.forEach((el) => {
+    document.querySelectorAll('[data-cart-count]').forEach((el) => {
       el.textContent = cart.item_count;
       el.hidden = cart.item_count === 0;
     });
+
+    this.renderShippingBar(cart);
+
+    const totalEl = this.querySelector('[data-checkout-total]');
+    if (totalEl) totalEl.textContent = formatMoney(cart.total_price);
 
     if (!itemsEl) return;
 
@@ -142,42 +152,108 @@ class CartDrawer extends HTMLElement {
         <a href="/collections/all" class="button button--secondary" data-close>${window.themeStrings.cartEmptyLink}</a>
       </div>`;
       if (footerEl) footerEl.hidden = true;
+      const upsell = this.querySelector('[data-cart-upsell]');
+      if (upsell) upsell.hidden = true;
       return;
     }
 
     if (footerEl) footerEl.hidden = false;
 
+    const deleteIcon = this.querySelector('template[data-icon-delete]')?.innerHTML || window.themeStrings.cartRemove;
+
     itemsEl.innerHTML = cart.items
-      .map(
-        (item) => `
+      .map((item) => {
+        const options = (item.options_with_values || [])
+          .filter((o) => o.value !== 'Default Title')
+          .map((o) => `${o.name}: ${o.value}`)
+          .join(' · ');
+        return `
       <div class="cart-item">
         <a href="${item.url}" class="cart-item__media">
-          ${item.image ? `<img src="${item.image}" alt="${item.product_title}" width="90" height="112" loading="lazy">` : ''}
+          ${item.image ? `<img src="${item.image}" alt="${item.product_title}" width="100" height="125" loading="lazy">` : ''}
         </a>
-        <div class="cart-item__details">
+        <div class="cart-item__info">
           <a href="${item.url}" class="cart-item__title">${item.product_title}</a>
-          ${item.variant_title ? `<div class="cart-item__variant">${item.variant_title}</div>` : ''}
-          <form data-cart-update>
-            <input type="hidden" name="id" value="${item.key}">
-            <quantity-input>
-              <div class="quantity-selector">
-                <button type="button" data-step="-1" aria-label="Decrease quantity">−</button>
-                <input type="number" name="quantity" value="${item.quantity}" min="0" aria-label="Quantity">
-                <button type="button" data-step="1" aria-label="Increase quantity">+</button>
-              </div>
-            </quantity-input>
-          </form>
-        </div>
-        <div class="cart-item__end">
           <div class="cart-item__price">${formatMoney(item.final_line_price)}</div>
-          <button type="button" class="cart-item__remove" data-cart-remove="${item.key}">${window.themeStrings.cartRemove}</button>
+          ${options ? `<div class="cart-item__variant">${options}</div>` : ''}
+          <div class="cart-item__controls">
+            <form data-cart-update>
+              <input type="hidden" name="id" value="${item.key}">
+              <quantity-input>
+                <div class="quantity-selector">
+                  <button type="button" data-step="-1" aria-label="Decrease quantity">−</button>
+                  <input type="number" name="quantity" value="${item.quantity}" min="0" aria-label="Quantity">
+                  <button type="button" data-step="1" aria-label="Increase quantity">+</button>
+                </div>
+              </quantity-input>
+            </form>
+            <button type="button" class="cart-item__remove" data-cart-remove="${item.key}" aria-label="${window.themeStrings.cartRemove}">${deleteIcon}</button>
+          </div>
         </div>
-      </div>`
-      )
+      </div>`;
+      })
       .join('');
 
-    const subtotalEl = this.querySelector('[data-cart-subtotal]');
-    if (subtotalEl) subtotalEl.textContent = formatMoney(cart.total_price);
+    this.renderUpsell(cart);
+  }
+
+  renderShippingBar(cart) {
+    const bar = this.querySelector('[data-shipping-bar]');
+    if (!bar) return;
+    const threshold = Number(bar.dataset.threshold);
+    if (!threshold) return;
+    const remaining = threshold - cart.total_price;
+    const textEl = bar.querySelector('[data-shipping-text]');
+    const fillEl = bar.querySelector('[data-shipping-fill]');
+    if (textEl) {
+      textEl.innerHTML = remaining > 0
+        ? window.themeStrings.freeShippingProgress.replace('[amount]', formatMoney(remaining))
+        : window.themeStrings.freeShippingUnlocked;
+    }
+    if (fillEl) fillEl.style.width = `${Math.min(100, (cart.total_price / threshold) * 100)}%`;
+  }
+
+  async renderUpsell(cart) {
+    const upsell = this.querySelector('[data-cart-upsell]');
+    const row = this.querySelector('[data-cart-upsell-items]');
+    if (!upsell || !row || cart.item_count === 0) return;
+
+    try {
+      const inCart = new Set(cart.items.map((item) => item.product_id));
+      const response = await fetch(`/recommendations/products.json?product_id=${cart.items[0].product_id}&limit=6`);
+      const data = await response.json();
+      const picks = (data.products || [])
+        .filter((p) => !inCart.has(p.id) && p.available !== false)
+        .slice(0, 3);
+
+      if (picks.length === 0) {
+        upsell.hidden = true;
+        return;
+      }
+
+      row.innerHTML = picks
+        .map((p) => {
+          const variant = (p.variants || []).find((v) => v.available) || p.variants?.[0];
+          if (!variant) return '';
+          return `
+        <div class="cart-upsell__item">
+          <a href="${p.url}" class="cart-upsell__media">
+            ${p.featured_image ? `<img src="${p.featured_image}" alt="${p.title}" width="80" height="100" loading="lazy">` : ''}
+          </a>
+          <div class="cart-upsell__details">
+            <a href="${p.url}" class="cart-upsell__title">${p.title}</a>
+            <div class="cart-upsell__price">${formatMoney(p.price)}</div>
+          </div>
+          <button type="button" class="button button--small" data-quick-add data-variant-id="${variant.id}">
+            ${window.themeStrings.addLabel} +
+          </button>
+        </div>`;
+        })
+        .join('');
+      upsell.hidden = false;
+    } catch (error) {
+      upsell.hidden = true;
+    }
   }
 }
 customElements.define('cart-drawer', CartDrawer);

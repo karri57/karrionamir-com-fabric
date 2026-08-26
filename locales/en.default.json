@@ -39,7 +39,11 @@
       "update": "Update cart",
       "updating": "Updating cart…",
       "error": "Something went wrong. Please try again.",
-      "shipping_note": "Taxes and shipping calculated at checkout"
+      "shipping_note": "Taxes and shipping calculated at checkout",
+      "free_shipping_progress_html": "Spend {{ amount }} more and get <strong>free shipping!</strong>",
+      "free_shipping_unlocked": "You've unlocked free shipping!",
+      "complete_outfit": "Complete your outfit",
+      "add": "Add"
     },
     "accessibility": {
       "skip_to_content": "Skip to content",

@@ -1,0 +1,12 @@
+{
+  "sections": {
+    "main": {
+      "type": "main-customizer",
+      "settings": {
+        "heading": "Design studio",
+        "subtext": "Pick a garment, place our designs, make it yours."
+      }
+    }
+  },
+  "order": ["main"]
+}

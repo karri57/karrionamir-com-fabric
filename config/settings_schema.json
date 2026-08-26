@@ -137,6 +137,17 @@
         "id": "cart_show_note",
         "label": "Show order note field",
         "default": true
+      },
+      {
+        "type": "range",
+        "id": "free_shipping_threshold",
+        "label": "Free shipping threshold",
+        "info": "Shown as a progress bar in the cart drawer. Set to 0 to hide. Make sure a matching free-shipping rate exists in Settings → Shipping.",
+        "min": 0,
+        "max": 500,
+        "step": 5,
+        "unit": "$",
+        "default": 150
       }
     ]
   },

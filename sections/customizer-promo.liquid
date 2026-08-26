@@ -1,0 +1,56 @@
+<section class="customizer-promo">
+  <div class="page-width customizer-promo__inner">
+    <div class="customizer-promo__content">
+      {%- if section.settings.eyebrow != blank -%}
+        <p class="customizer-promo__eyebrow">{{ section.settings.eyebrow }}</p>
+      {%- endif -%}
+      <h2 class="customizer-promo__heading">
+        {{ section.settings.heading_solid }}
+        <span class="customizer-promo__heading-outline">{{ section.settings.heading_outline }}</span>
+      </h2>
+      {%- if section.settings.text != blank -%}
+        <p class="customizer-promo__text">{{ section.settings.text }}</p>
+      {%- endif -%}
+      <a href="{{ section.settings.link | default: '/pages/design-studio' }}" class="button">
+        {{ section.settings.button_label }}
+      </a>
+    </div>
+
+    <div class="customizer-promo__visual">
+      {%- if section.settings.image != blank -%}
+        <img
+          src="{{ section.settings.image | image_url: width: 900 }}"
+          alt="{{ section.settings.image.alt | escape }}"
+          width="900"
+          height="{{ 900 | divided_by: section.settings.image.aspect_ratio | default: 900 }}"
+          loading="lazy"
+        >
+      {%- else -%}
+        <svg viewBox="0 0 400 460" aria-hidden="true" class="customizer-promo__tee">
+          <path d="M118 60 L62 92 L20 210 L92 240 L108 196 L108 420 Q200 442 292 420 L292 196 L308 240 L380 210 L338 92 L282 60 Q252 34 200 36 Q148 34 118 60 Z" fill="#ffffff" stroke="rgb(0 0 0 / 20%)" stroke-width="2"/>
+          <path d="M154 52 Q200 78 246 52" fill="none" stroke="rgb(0 0 0 / 25%)" stroke-width="6" stroke-linecap="round"/>
+          <text x="200" y="235" text-anchor="middle" font-size="34" font-weight="700" fill="currentColor" opacity="0.85">YOUR</text>
+          <text x="200" y="275" text-anchor="middle" font-size="34" font-weight="700" fill="currentColor" opacity="0.85">DESIGN</text>
+        </svg>
+      {%- endif -%}
+    </div>
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Customizer promo",
+  "settings": [
+    { "type": "text", "id": "eyebrow", "label": "Eyebrow", "default": "KA Studio" },
+    { "type": "text", "id": "heading_solid", "label": "Heading (solid)", "default": "Design it" },
+    { "type": "text", "id": "heading_outline", "label": "Heading (outlined)", "default": "yourself" },
+    { "type": "textarea", "id": "text", "label": "Text", "default": "Put our designs where you want them. Pick a tee or hoodie, place the graphics, make it yours." },
+    { "type": "text", "id": "button_label", "label": "Button label", "default": "Start designing" },
+    { "type": "url", "id": "link", "label": "Button link", "info": "Defaults to /pages/design-studio" },
+    { "type": "image_picker", "id": "image", "label": "Visual (optional)", "info": "Replaces the built-in tee illustration." }
+  ],
+  "presets": [
+    { "name": "Customizer promo" }
+  ]
+}
+{% endschema %}
