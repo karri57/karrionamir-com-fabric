@@ -217,11 +217,25 @@ class ProductForm extends HTMLElement {
     this.showError('');
 
     try {
-      const formData = new FormData(this.form);
-      await addToCart({ id: formData.get('id'), quantity: formData.get('quantity') });
+      // Post the form's own fields as form data - the encoding /cart/add
+      // has accepted forever - rather than reshaping into JSON.
+      const response = await fetch('/cart/add.js', {
+        method: 'POST',
+        headers: { Accept: 'application/json' },
+        body: new FormData(this.form),
+      });
+      const data = await response.json();
+      if (!response.ok || data.status) throw new Error(data.description || data.message);
+
+      const cartResponse = await fetch('/cart.js');
+      const cart = await cartResponse.json();
+      document.dispatchEvent(new CustomEvent('cart:updated', { detail: { cart } }));
       document.querySelector('cart-drawer')?.open();
     } catch (error) {
-      this.showError(error.message || window.themeStrings.genericError);
+      // Whatever broke the AJAX path, the native submit still adds the item
+      // server-side and lands on the cart page - never a dead button.
+      console.error('[theme] AJAX add-to-cart failed, falling back to native submit:', error);
+      this.form.submit();
     } finally {
       this.submitButton?.removeAttribute('aria-disabled');
     }
@@ -241,7 +255,12 @@ customElements.define('product-form', ProductForm);
  * ---------------------------------------------------------------------- */
 class VariantPicker extends HTMLElement {
   connectedCallback() {
-    this.variants = JSON.parse(this.querySelector('[data-variant-json]').textContent);
+    try {
+      this.variants = JSON.parse(this.querySelector('[data-variant-json]').textContent);
+    } catch (error) {
+      console.error('[theme] variant JSON failed to parse:', error);
+      this.variants = [];
+    }
     this.form = this.closest('product-form')?.querySelector('form') || this.closest('form');
     this.addEventListener('change', () => this.onChange());
   }
@@ -310,7 +329,7 @@ document.addEventListener('click', async (event) => {
     await addToCart({ id: button.dataset.variantId, quantity: 1 });
     document.querySelector('cart-drawer')?.open();
   } catch (error) {
-    // Swallow: the item is likely out of stock by the time this ran.
+    console.error('[theme] quick add failed:', error);
   } finally {
     button.removeAttribute('aria-disabled');
   }
@@ -427,7 +446,11 @@ document.addEventListener('click', (event) => {
   bar.hidden = false;
 
   bar.querySelector('[data-sticky-add-to-cart-button]')?.addEventListener('click', () => {
-    mainButton.closest('form')?.requestSubmit();
+    const form = mainButton.closest('form');
+    // requestSubmit is missing on older iOS Safari; clicking the real submit
+    // button fires the same submit event there.
+    if (form?.requestSubmit) form.requestSubmit();
+    else mainButton.click();
   });
 
   const observer = new IntersectionObserver(

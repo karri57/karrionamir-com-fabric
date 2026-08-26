@@ -1097,6 +1097,10 @@ p {
   font-size: 0.8rem;
 }
 
+.form-error[hidden] {
+  display: none;
+}
+
 .product__description {
   margin-top: 2rem;
   padding-top: 2rem;
