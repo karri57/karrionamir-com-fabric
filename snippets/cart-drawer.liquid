@@ -63,6 +63,12 @@
                     {%- endfor -%}
                   </div>
                 {%- endunless -%}
+                {%- for property in item.properties -%}
+                  {%- assign first_char = property.first | slice: 0 -%}
+                  {%- if property.last != blank and first_char != '_' -%}
+                    <div class="cart-item__variant">{{ property.first }}: {{ property.last }}</div>
+                  {%- endif -%}
+                {%- endfor -%}
                 <div class="cart-item__controls">
                   <form data-cart-update>
                     <input type="hidden" name="id" value="{{ item.key }}">

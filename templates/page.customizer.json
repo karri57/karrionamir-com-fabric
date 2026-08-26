@@ -4,8 +4,73 @@
       "type": "main-customizer",
       "settings": {
         "heading": "Design studio",
-        "subtext": "Pick a garment, place our designs, make it yours."
-      }
+        "subtext": "Place our designs, make it yours."
+      },
+      "blocks": {
+        "canvas_classic_tee": {
+          "type": "canvas",
+          "settings": {
+            "label": "Classic Tee",
+            "color_1_name": "Standard",
+            "photo_1": "shopify://shop_images/IMG_1444.jpg"
+          }
+        },
+        "canvas_classic_hoodie": {
+          "type": "canvas",
+          "settings": {
+            "label": "Classic Hoodie",
+            "color_1_name": "Standard",
+            "photo_1": "shopify://shop_images/IMG_1334.jpg"
+          }
+        },
+        "canvas_classic_polo": {
+          "type": "canvas",
+          "settings": {
+            "label": "Classic Polo",
+            "color_1_name": "Standard",
+            "photo_1": "shopify://shop_images/IMG_1433.jpg"
+          }
+        },
+        "canvas_classic_sweater": {
+          "type": "canvas",
+          "settings": {
+            "label": "Classic Sweater",
+            "color_1_name": "Standard",
+            "photo_1": "shopify://shop_images/IMG_1439.jpg"
+          }
+        },
+        "canvas_washed_hoodie": {
+          "type": "canvas",
+          "settings": {
+            "label": "Washed Hoodie",
+            "color_1_name": "Standard",
+            "photo_1": "shopify://shop_images/IMG_1413_fc522466-4295-47a9-8832-1ddbefa9059b.jpg"
+          }
+        },
+        "design_logo_1": {
+          "type": "design",
+          "settings": {
+            "label": "Logo",
+            "image": "shopify://shop_images/IMG_0093.png"
+          }
+        },
+        "design_logo_2": {
+          "type": "design",
+          "settings": {
+            "label": "Logo 2",
+            "image": "shopify://shop_images/IMG_1335.png"
+          }
+        }
+      },
+      "block_order": [
+        "canvas_classic_tee",
+        "canvas_classic_hoodie",
+        "canvas_classic_polo",
+        "canvas_classic_sweater",
+        "canvas_washed_hoodie",
+        "design_logo_1",
+        "design_logo_2"
+      ]
     }
   },
   "order": ["main"]

@@ -1,7 +1,13 @@
 /**
- * KA Design Studio: place brand designs on a tee/hoodie mockup.
- * Placements are stored per garment+side as percentages of the stage,
- * so they survive garment/view/color switches and window resizes.
+ * KA Design Studio.
+ *
+ * Photo mode: real garment "canvases" (photo + colorway swatches +
+ * product) defined as section blocks; the picker page links here with
+ * ?canvas=<handle> to open the chosen garment. Placements are stored
+ * per canvas as percentages of the stage.
+ *
+ * Legacy mode (no canvas blocks): the original tee/hoodie SVG mockups
+ * with flat colors and front/back views.
  */
 
 function money(cents) {
@@ -14,18 +20,29 @@ function money(cents) {
 class KaCustomizer extends HTMLElement {
   connectedCallback() {
     try {
-      this.config = JSON.parse(this.querySelector('[data-kc-config]').textContent);
+      const parsed = JSON.parse(this.querySelector('[data-kc-config]').textContent);
+      this.config = {
+        designs: (parsed.designs || []).filter(Boolean),
+        canvases: (parsed.canvases || []).filter(Boolean).map((canvas) => ({
+          ...canvas,
+          colorways: (canvas.colorways || []).filter(Boolean),
+        })),
+        variants: parsed.variants || {},
+        prices: parsed.prices || {},
+      };
     } catch (error) {
       console.error('[studio] bad config', error);
-      this.config = { designs: [], variants: {}, prices: {} };
+      this.config = { designs: [], canvases: [], variants: {}, prices: {} };
     }
 
+    this.photoMode = this.config.canvases.length > 0;
+
     this.state = {
+      canvasIndex: 0,
+      colorwayIndex: 0,
       garment: 'tee',
       view: 'front',
       color: '#ffffff',
-      // placements['tee-front'] = [{design, x, y, scale, rot}] with x/y as
-      // percentages of the stage and scale relative to a 30%-wide base.
       placements: {},
       selected: null,
     };
@@ -33,24 +50,37 @@ class KaCustomizer extends HTMLElement {
     this.stage = this.querySelector('[data-kc-stage]');
     this.placementsEl = this.querySelector('[data-kc-placements]');
     this.tools = this.querySelector('[data-kc-tools]');
+    this.photoEl = this.querySelector('[data-kc-photo]');
 
-    // The picker page links here with ?garment=tee|hoodie preselected.
-    const requested = new URLSearchParams(window.location.search).get('garment');
-    if (requested === 'tee' || requested === 'hoodie') {
-      this.state.garment = requested;
+    // The picker page links here with ?canvas=<handleized name> (or the
+    // legacy ?garment=tee|hoodie).
+    const params = new URLSearchParams(window.location.search);
+    const requestedCanvas = params.get('canvas') || params.get('garment');
+    if (this.photoMode && requestedCanvas) {
+      const index = this.config.canvases.findIndex((c) => c.key === requestedCanvas);
+      if (index >= 0) this.state.canvasIndex = index;
+    } else if (!this.photoMode && (requestedCanvas === 'tee' || requestedCanvas === 'hoodie')) {
+      this.state.garment = requestedCanvas;
       this.querySelectorAll('[data-kc-garment]').forEach((b) =>
-        b.setAttribute('aria-current', b.dataset.kcGarment === requested ? 'true' : 'false')
+        b.setAttribute('aria-current', b.dataset.kcGarment === requestedCanvas ? 'true' : 'false')
       );
     }
 
     this.renderDesignTray();
-    this.updateGarment();
-    this.updateCommerce();
+    if (this.photoMode) this.setCanvas(this.state.canvasIndex);
+    else {
+      this.updateGarment();
+      this.updateCommerce();
+    }
     this.bindEvents();
   }
 
+  get currentCanvas() {
+    return this.config.canvases[this.state.canvasIndex];
+  }
+
   get key() {
-    return `${this.state.garment}-${this.state.view}`;
+    return this.photoMode ? this.currentCanvas.key : `${this.state.garment}-${this.state.view}`;
   }
 
   get currentPlacements() {
@@ -79,6 +109,16 @@ class KaCustomizer extends HTMLElement {
 
   bindEvents() {
     this.addEventListener('click', (event) => {
+      const canvasButton = event.target.closest('[data-kc-canvas]');
+      if (canvasButton) {
+        const index = this.config.canvases.findIndex((c) => c.key === canvasButton.dataset.kcCanvas);
+        if (index >= 0) this.setCanvas(index);
+        return;
+      }
+
+      const colorwayButton = event.target.closest('[data-kc-colorway]');
+      if (colorwayButton) return this.setColorway(Number(colorwayButton.dataset.kcColorway));
+
       const garmentButton = event.target.closest('[data-kc-garment]');
       if (garmentButton) return this.setGarment(garmentButton.dataset.kcGarment);
 
@@ -147,7 +187,57 @@ class KaCustomizer extends HTMLElement {
     }
   }
 
-  /* -- state changes ---------------------------------------------------- */
+  /* -- photo mode: canvases & colorways --------------------------------- */
+
+  setCanvas(index) {
+    this.state.canvasIndex = index;
+    this.state.colorwayIndex = 0;
+    this.state.selected = null;
+    if (this.tools) this.tools.hidden = true;
+
+    this.querySelectorAll('[data-kc-canvas]').forEach((b) =>
+      b.setAttribute('aria-current', b.dataset.kcCanvas === this.currentCanvas.key ? 'true' : 'false')
+    );
+    this.updatePhoto();
+    this.renderColorways();
+    this.updateCommerce();
+    this.renderPlacements();
+  }
+
+  setColorway(index) {
+    this.state.colorwayIndex = index;
+    this.updatePhoto();
+    this.renderColorways();
+  }
+
+  updatePhoto() {
+    if (!this.photoEl) return;
+    const colorway = this.currentCanvas.colorways[this.state.colorwayIndex] || this.currentCanvas.colorways[0];
+    this.photoEl.src = colorway.src;
+    this.photoEl.alt = `${this.currentCanvas.label} — ${colorway.name}`;
+  }
+
+  renderColorways() {
+    const group = this.querySelector('[data-kc-colorway-group]');
+    const holder = this.querySelector('[data-kc-colorways]');
+    const nameEl = this.querySelector('[data-kc-colorway-name]');
+    if (!group || !holder) return;
+
+    const colorways = this.currentCanvas.colorways;
+    group.hidden = colorways.length < 2;
+    if (nameEl) nameEl.textContent = colorways[this.state.colorwayIndex]?.name || '';
+
+    holder.innerHTML = colorways
+      .map(
+        (c, i) => `
+      <button type="button" class="kc__colorway" data-kc-colorway="${i}" aria-current="${i === this.state.colorwayIndex}" title="${c.name}">
+        <img src="${c.src}" alt="${c.name}" loading="lazy">
+      </button>`
+      )
+      .join('');
+  }
+
+  /* -- legacy mode state changes ----------------------------------------- */
 
   setGarment(garment) {
     this.state.garment = garment;
@@ -185,16 +275,24 @@ class KaCustomizer extends HTMLElement {
     this.renderPlacements();
   }
 
+  /* -- commerce ----------------------------------------------------------- */
+
+  currentVariant() {
+    return this.photoMode ? this.currentCanvas.variant : this.config.variants[this.state.garment];
+  }
+
+  currentPrice() {
+    return this.photoMode ? this.currentCanvas.price : this.config.prices[this.state.garment];
+  }
+
   updateCommerce() {
     const addButton = this.querySelector('[data-kc-add]');
     const note = this.querySelector('[data-kc-note]');
-    const variant = this.config.variants[this.state.garment];
+    const variant = this.currentVariant();
     if (addButton) addButton.hidden = !variant;
     if (note) note.hidden = Boolean(variant);
     const priceEl = this.querySelector('[data-kc-price]');
-    if (priceEl && this.config.prices[this.state.garment]) {
-      priceEl.textContent = money(this.config.prices[this.state.garment]);
-    }
+    if (priceEl && this.currentPrice()) priceEl.textContent = money(this.currentPrice());
   }
 
   /* -- placements ------------------------------------------------------- */
@@ -233,7 +331,7 @@ class KaCustomizer extends HTMLElement {
         return `
       <div class="kc__item${i === this.state.selected ? ' kc__item--selected' : ''}"
            data-kc-item="${i}"
-           style="left: ${p.x}%; top: ${p.y}%; width: ${30 * p.scale}%; transform: translate(-50%, -50%) rotate(${p.rot}deg);">
+           style="left: ${p.x}%; top: ${p.y}%; width: ${24 * p.scale}%; transform: translate(-50%, -50%) rotate(${p.rot}deg);">
         <img src="${design.src}" alt="${design.label}" draggable="false" crossorigin="anonymous">
       </div>`;
       })
@@ -242,21 +340,43 @@ class KaCustomizer extends HTMLElement {
 
   /* -- output ----------------------------------------------------------- */
 
+  describePlacement(p) {
+    const label = this.config.designs[p.design]?.label || 'Design';
+    const scale = p.scale !== 1 ? ` ×${p.scale.toFixed(2)}` : '';
+    const rot = p.rot ? ` ${p.rot}°` : '';
+    return `${label} @ (${Math.round(p.x)}%, ${Math.round(p.y)}%)${scale}${rot}`;
+  }
+
   summarize() {
+    if (this.photoMode) {
+      const list = this.currentPlacements;
+      return list.length ? list.map((p) => this.describePlacement(p)).join('; ') : 'blank';
+    }
     const parts = [];
     for (const [key, list] of Object.entries(this.state.placements)) {
       if (!key.startsWith(this.state.garment) || list.length === 0) continue;
       const side = key.split('-')[1];
-      parts.push(`${side}: ${list.map((p) => this.config.designs[p.design]?.label).join(', ')}`);
+      parts.push(`${side}: ${list.map((p) => this.describePlacement(p)).join('; ')}`);
     }
     return parts.join(' | ') || 'blank';
   }
 
-  async addToCart() {
-    const variant = this.config.variants[this.state.garment];
-    if (!variant) return;
+  buildProperties() {
+    if (this.photoMode) {
+      const colorway = this.currentCanvas.colorways[this.state.colorwayIndex];
+      return {
+        Product: this.currentCanvas.label,
+        Colorway: colorway?.name || 'Standard',
+        Design: this.summarize(),
+        _config: JSON.stringify({
+          canvas: this.currentCanvas.key,
+          colorway: colorway?.name,
+          placements: this.currentPlacements,
+        }),
+      };
+    }
     const colorButton = this.querySelector(`[data-kc-color="${this.state.color}"]`);
-    const properties = {
+    return {
       Garment: this.state.garment === 'tee' ? 'Tee' : 'Hoodie',
       Color: colorButton?.getAttribute('aria-label') || this.state.color,
       Design: this.summarize(),
@@ -268,12 +388,17 @@ class KaCustomizer extends HTMLElement {
         },
       }),
     };
+  }
+
+  async addToCart() {
+    const variant = this.currentVariant();
+    if (!variant) return;
 
     try {
       const response = await fetch('/cart/add.js', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({ items: [{ id: Number(variant), quantity: 1, properties }] }),
+        body: JSON.stringify({ items: [{ id: Number(variant), quantity: 1, properties: this.buildProperties() }] }),
       });
       const data = await response.json();
       if (!response.ok || data.status) throw new Error(data.description || data.message);
@@ -285,64 +410,75 @@ class KaCustomizer extends HTMLElement {
     }
   }
 
-  async download() {
-    const canvas = document.createElement('canvas');
-    canvas.width = 900;
-    canvas.height = 1080;
-    const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#f5f5f5';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    const svg = this.querySelector('[data-kc-garment-svg]').cloneNode(true);
-    svg.querySelectorAll('[data-kc-shape]').forEach((g) => {
-      if (g.dataset.kcShape !== `${this.state.garment}-${this.state.view}`) g.remove();
-      else g.hidden = false;
+  loadImage(src, cors) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      if (cors) img.crossOrigin = 'anonymous';
+      img.onload = () => resolve(img);
+      img.onerror = () => resolve(null);
+      img.src = src;
     });
-    svg.querySelectorAll('.kc-fill').forEach((p) => p.setAttribute('fill', this.state.color));
-    svg.setAttribute('width', 900);
-    svg.setAttribute('height', 1080);
+  }
 
-    const svgUrl = URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(svg)], { type: 'image/svg+xml' }));
-    try {
-      await new Promise((resolve, reject) => {
-        const img = new Image();
-        img.onload = () => {
-          ctx.drawImage(img, 0, 0, 900, 1080);
-          resolve();
-        };
-        img.onerror = reject;
-        img.src = svgUrl;
+  async download() {
+    const width = 900;
+    let baseImage = null;
+    let svgUrl = null;
+
+    if (this.photoMode) {
+      const colorway = this.currentCanvas.colorways[this.state.colorwayIndex];
+      baseImage = await this.loadImage(colorway.src, true);
+      if (!baseImage) {
+        console.error('[studio] preview export failed: photo did not load');
+        return;
+      }
+    } else {
+      const svg = this.querySelector('[data-kc-garment-svg]').cloneNode(true);
+      svg.querySelectorAll('[data-kc-shape]').forEach((g) => {
+        if (g.dataset.kcShape !== `${this.state.garment}-${this.state.view}`) g.remove();
+        else g.hidden = false;
       });
+      svg.querySelectorAll('.kc-fill').forEach((p) => p.setAttribute('fill', this.state.color));
+      svg.setAttribute('width', width);
+      svg.setAttribute('height', 1080);
+      svgUrl = URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(svg)], { type: 'image/svg+xml' }));
+      baseImage = await this.loadImage(svgUrl, false);
+    }
+
+    try {
+      const height = this.photoMode
+        ? Math.round(width * (baseImage.naturalHeight / baseImage.naturalWidth))
+        : 1080;
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#f5f5f5';
+      ctx.fillRect(0, 0, width, height);
+      if (baseImage) ctx.drawImage(baseImage, 0, 0, width, height);
 
       for (const p of this.currentPlacements) {
         const design = this.config.designs[p.design];
         if (!design) continue;
-        await new Promise((resolve) => {
-          const img = new Image();
-          img.crossOrigin = 'anonymous';
-          img.onload = () => {
-            const w = 900 * 0.3 * p.scale;
-            const h = w * (img.naturalHeight / img.naturalWidth);
-            ctx.save();
-            ctx.translate((p.x / 100) * 900, (p.y / 100) * 1080);
-            ctx.rotate((p.rot * Math.PI) / 180);
-            ctx.drawImage(img, -w / 2, -h / 2, w, h);
-            ctx.restore();
-            resolve();
-          };
-          img.onerror = resolve;
-          img.src = design.src;
-        });
+        const img = await this.loadImage(design.src, true);
+        if (!img) continue;
+        const w = width * 0.24 * p.scale;
+        const h = w * (img.naturalHeight / img.naturalWidth);
+        ctx.save();
+        ctx.translate((p.x / 100) * width, (p.y / 100) * height);
+        ctx.rotate((p.rot * Math.PI) / 180);
+        ctx.drawImage(img, -w / 2, -h / 2, w, h);
+        ctx.restore();
       }
 
       const link = document.createElement('a');
-      link.download = `ka-custom-${this.state.garment}.png`;
+      link.download = `ka-custom-${this.key}.png`;
       link.href = canvas.toDataURL('image/png');
       link.click();
     } catch (error) {
       console.error('[studio] preview export failed:', error);
     } finally {
-      URL.revokeObjectURL(svgUrl);
+      if (svgUrl) URL.revokeObjectURL(svgUrl);
     }
   }
 }

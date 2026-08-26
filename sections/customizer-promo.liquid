@@ -18,7 +18,10 @@
 
     <div class="customizer-promo__visual">
       {%- if section.settings.shirt_image != blank -%}
-        <showcase-demo class="showcase">
+        <showcase-demo
+          class="showcase"
+          data-zone="{{ section.settings.zone_x | default: 50 }},{{ section.settings.zone_y | default: 42 }},{{ section.settings.zone_w | default: 32 }},{{ section.settings.zone_h | default: 28 }}"
+        >
           <script type="application/json" data-demo-designs>
             [
               {%- for block in section.blocks -%}
@@ -108,7 +111,16 @@
       "id": "image",
       "label": "Static visual (fallback)",
       "info": "Only used if no shirt photo above is set. Replaces the built-in tee illustration."
-    }
+    },
+    {
+      "type": "header",
+      "content": "Print zone",
+      "info": "Where designs land on the photo, as % of the image. Tune these until drops sit on the garment's chest."
+    },
+    { "type": "range", "id": "zone_x", "label": "Zone center — horizontal", "min": 20, "max": 80, "step": 1, "unit": "%", "default": 50 },
+    { "type": "range", "id": "zone_y", "label": "Zone center — vertical", "min": 20, "max": 80, "step": 1, "unit": "%", "default": 42 },
+    { "type": "range", "id": "zone_w", "label": "Zone width", "min": 10, "max": 70, "step": 1, "unit": "%", "default": 32 },
+    { "type": "range", "id": "zone_h", "label": "Zone height", "min": 10, "max": 70, "step": 1, "unit": "%", "default": 28 }
   ],
   "blocks": [
     {

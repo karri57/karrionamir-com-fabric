@@ -1,16 +1,32 @@
 {%- comment -%}
-  Interactive design studio: place brand designs (uploaded as section
-  blocks) on a tee or hoodie, front and back, recolor the garment, and
-  add the configured custom product to cart with the design stored as
-  line item properties.
+  Interactive design studio.
+
+  Photo mode (preferred): "Canvas" blocks each define a real garment -
+  a name (matched by handle against the picker page's card names, so
+  ?canvas=<handle> opens the right one), an optional product to sell,
+  and up to four colorway name+photo pairs shown as swatches. Shoppers
+  place brand designs (uploaded as Design blocks) on the photo.
+
+  Legacy mode: with no canvas blocks configured, falls back to the
+  built-in tee/hoodie SVG mockups with flat color options.
+
+  Add-to-cart posts the canvas's product with the design serialized
+  into line item properties (visible on the order in Shopify admin).
 {%- endcomment -%}
 
 {%- liquid
+  assign has_canvases = false
+  for block in section.blocks
+    if block.type == 'canvas' and block.settings.photo_1 != blank
+      assign has_canvases = true
+    endif
+  endfor
+
   assign tee_variant = section.settings.tee_product.selected_or_first_available_variant
   assign hoodie_variant = section.settings.hoodie_product.selected_or_first_available_variant
 -%}
 
-<ka-customizer class="page-width section kc">
+<ka-customizer class="page-width section kc" {% if has_canvases %}data-photo-mode{% endif %}>
   <script type="application/json" data-kc-config>
     {
       "designs": [
@@ -19,9 +35,37 @@
             {
               "label": {{ block.settings.label | default: 'Design' | json }},
               "src": {{ block.settings.image | image_url: width: 500 | json }}
-            }{%- unless forloop.last -%},{%- endunless -%}
+            },
           {%- endif -%}
         {%- endfor -%}
+        null
+      ],
+      "canvases": [
+        {%- for block in section.blocks -%}
+          {%- if block.type == 'canvas' and block.settings.photo_1 != blank -%}
+            {%- assign canvas_variant = block.settings.product.selected_or_first_available_variant -%}
+            {
+              "key": {{ block.settings.label | handleize | json }},
+              "label": {{ block.settings.label | json }},
+              "variant": {{ canvas_variant.id | json }},
+              "price": {{ canvas_variant.price | json }},
+              "colorways": [
+                { "name": {{ block.settings.color_1_name | default: 'Standard' | json }}, "src": {{ block.settings.photo_1 | image_url: width: 900 | json }} },
+                {%- if block.settings.photo_2 != blank -%}
+                  { "name": {{ block.settings.color_2_name | default: 'Colorway 2' | json }}, "src": {{ block.settings.photo_2 | image_url: width: 900 | json }} },
+                {%- endif -%}
+                {%- if block.settings.photo_3 != blank -%}
+                  { "name": {{ block.settings.color_3_name | default: 'Colorway 3' | json }}, "src": {{ block.settings.photo_3 | image_url: width: 900 | json }} },
+                {%- endif -%}
+                {%- if block.settings.photo_4 != blank -%}
+                  { "name": {{ block.settings.color_4_name | default: 'Colorway 4' | json }}, "src": {{ block.settings.photo_4 | image_url: width: 900 | json }} },
+                {%- endif -%}
+                null
+              ]
+            },
+          {%- endif -%}
+        {%- endfor -%}
+        null
       ],
       "variants": {
         "tee": {{ tee_variant.id | json }},
@@ -44,55 +88,91 @@
   <div class="kc__layout">
     <div class="kc__stage-column">
       <div class="kc__toolbar">
-        <div class="kc__toggle" role="tablist" aria-label="Garment">
-          <button type="button" data-kc-garment="tee" aria-current="true">Tee</button>
-          <button type="button" data-kc-garment="hoodie" aria-current="false">Hoodie</button>
-        </div>
-        <div class="kc__toggle" role="tablist" aria-label="Side">
-          <button type="button" data-kc-view="front" aria-current="true">Front</button>
-          <button type="button" data-kc-view="back" aria-current="false">Back</button>
-        </div>
+        {%- if has_canvases -%}
+          <div class="kc__canvas-tabs" role="tablist" aria-label="Garment">
+            {%- for block in section.blocks -%}
+              {%- if block.type == 'canvas' and block.settings.photo_1 != blank -%}
+                <button
+                  type="button"
+                  data-kc-canvas="{{ block.settings.label | handleize }}"
+                  aria-current="{% if forloop.first %}true{% else %}false{% endif %}"
+                  {{ block.shopify_attributes }}
+                >
+                  {{ block.settings.label }}
+                </button>
+              {%- endif -%}
+            {%- endfor -%}
+          </div>
+        {%- else -%}
+          <div class="kc__toggle" role="tablist" aria-label="Garment">
+            <button type="button" data-kc-garment="tee" aria-current="true">Tee</button>
+            <button type="button" data-kc-garment="hoodie" aria-current="false">Hoodie</button>
+          </div>
+          <div class="kc__toggle" role="tablist" aria-label="Side">
+            <button type="button" data-kc-view="front" aria-current="true">Front</button>
+            <button type="button" data-kc-view="back" aria-current="false">Back</button>
+          </div>
+        {%- endif -%}
       </div>
 
       <div class="kc__stage" data-kc-stage>
         <div class="kc__garment-wrap" data-kc-tilt>
-          <svg viewBox="0 0 400 480" class="kc__garment" data-kc-garment-svg aria-hidden="true">
-            <defs>
-              <linearGradient id="kc-shade" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0" stop-color="#000" stop-opacity="0.12"/>
-                <stop offset="0.2" stop-color="#000" stop-opacity="0"/>
-                <stop offset="0.8" stop-color="#000" stop-opacity="0"/>
-                <stop offset="1" stop-color="#000" stop-opacity="0.12"/>
-              </linearGradient>
-            </defs>
+          {%- if has_canvases -%}
+            {%- for block in section.blocks -%}
+              {%- if block.type == 'canvas' and block.settings.photo_1 != blank -%}
+                {%- if forloop.first -%}
+                  <img
+                    src="{{ block.settings.photo_1 | image_url: width: 900 }}"
+                    alt="{{ block.settings.label | escape }}"
+                    width="900"
+                    height="{{ 900 | divided_by: block.settings.photo_1.aspect_ratio | default: 1100 }}"
+                    class="kc__photo"
+                    data-kc-photo
+                    crossorigin="anonymous"
+                    draggable="false"
+                  >
+                {%- endif -%}
+              {%- endif -%}
+            {%- endfor -%}
+          {%- else -%}
+            <svg viewBox="0 0 400 480" class="kc__garment" data-kc-garment-svg aria-hidden="true">
+              <defs>
+                <linearGradient id="kc-shade" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0" stop-color="#000" stop-opacity="0.12"/>
+                  <stop offset="0.2" stop-color="#000" stop-opacity="0"/>
+                  <stop offset="0.8" stop-color="#000" stop-opacity="0"/>
+                  <stop offset="1" stop-color="#000" stop-opacity="0.12"/>
+                </linearGradient>
+              </defs>
 
-            <g data-kc-shape="tee-front">
-              <path class="kc-fill" d="M118 74 L62 106 L20 224 L92 254 L108 210 L108 434 Q200 456 292 434 L292 210 L308 254 L380 224 L338 106 L282 74 Q252 48 200 50 Q148 48 118 74 Z"/>
-              <path d="M118 74 L62 106 L20 224 L92 254 L108 210 L108 434 Q200 456 292 434 L292 210 L308 254 L380 224 L338 106 L282 74 Q252 48 200 50 Q148 48 118 74 Z" fill="url(#kc-shade)"/>
-              <path d="M154 66 Q200 94 246 66" fill="none" stroke="rgb(0 0 0 / 22%)" stroke-width="7" stroke-linecap="round"/>
-              <path d="M108 210 L108 434 M292 210 L292 434" fill="none" stroke="rgb(0 0 0 / 8%)" stroke-width="2"/>
-            </g>
+              <g data-kc-shape="tee-front">
+                <path class="kc-fill" d="M118 74 L62 106 L20 224 L92 254 L108 210 L108 434 Q200 456 292 434 L292 210 L308 254 L380 224 L338 106 L282 74 Q252 48 200 50 Q148 48 118 74 Z"/>
+                <path d="M118 74 L62 106 L20 224 L92 254 L108 210 L108 434 Q200 456 292 434 L292 210 L308 254 L380 224 L338 106 L282 74 Q252 48 200 50 Q148 48 118 74 Z" fill="url(#kc-shade)"/>
+                <path d="M154 66 Q200 94 246 66" fill="none" stroke="rgb(0 0 0 / 22%)" stroke-width="7" stroke-linecap="round"/>
+                <path d="M108 210 L108 434 M292 210 L292 434" fill="none" stroke="rgb(0 0 0 / 8%)" stroke-width="2"/>
+              </g>
 
-            <g data-kc-shape="tee-back" hidden>
-              <path class="kc-fill" d="M118 74 L62 106 L20 224 L92 254 L108 210 L108 434 Q200 456 292 434 L292 210 L308 254 L380 224 L338 106 L282 74 Q252 48 200 50 Q148 48 118 74 Z"/>
-              <path d="M118 74 L62 106 L20 224 L92 254 L108 210 L108 434 Q200 456 292 434 L292 210 L308 254 L380 224 L338 106 L282 74 Q252 48 200 50 Q148 48 118 74 Z" fill="url(#kc-shade)"/>
-              <path d="M162 60 Q200 74 238 60" fill="none" stroke="rgb(0 0 0 / 22%)" stroke-width="7" stroke-linecap="round"/>
-            </g>
+              <g data-kc-shape="tee-back" hidden>
+                <path class="kc-fill" d="M118 74 L62 106 L20 224 L92 254 L108 210 L108 434 Q200 456 292 434 L292 210 L308 254 L380 224 L338 106 L282 74 Q252 48 200 50 Q148 48 118 74 Z"/>
+                <path d="M118 74 L62 106 L20 224 L92 254 L108 210 L108 434 Q200 456 292 434 L292 210 L308 254 L380 224 L338 106 L282 74 Q252 48 200 50 Q148 48 118 74 Z" fill="url(#kc-shade)"/>
+                <path d="M162 60 Q200 74 238 60" fill="none" stroke="rgb(0 0 0 / 22%)" stroke-width="7" stroke-linecap="round"/>
+              </g>
 
-            <g data-kc-shape="hoodie-front" hidden>
-              <path class="kc-fill" d="M112 96 L54 130 L16 250 L90 280 L104 238 L104 440 Q200 464 296 440 L296 238 L310 280 L384 250 L346 130 L288 96 Q250 66 200 68 Q150 66 112 96 Z"/>
-              <path d="M112 96 L54 130 L16 250 L90 280 L104 238 L104 440 Q200 464 296 440 L296 238 L310 280 L384 250 L346 130 L288 96 Q250 66 200 68 Q150 66 112 96 Z" fill="url(#kc-shade)"/>
-              <path class="kc-fill" d="M140 92 Q142 44 200 42 Q258 44 260 92 Q262 116 200 122 Q138 116 140 92 Z" stroke="rgb(0 0 0 / 20%)" stroke-width="3"/>
-              <path d="M182 116 L178 168 M218 116 L222 168" fill="none" stroke="rgb(0 0 0 / 30%)" stroke-width="4" stroke-linecap="round"/>
-              <path class="kc-fill" d="M138 330 L262 330 L246 408 L154 408 Z" stroke="rgb(0 0 0 / 18%)" stroke-width="3"/>
-            </g>
+              <g data-kc-shape="hoodie-front" hidden>
+                <path class="kc-fill" d="M112 96 L54 130 L16 250 L90 280 L104 238 L104 440 Q200 464 296 440 L296 238 L310 280 L384 250 L346 130 L288 96 Q250 66 200 68 Q150 66 112 96 Z"/>
+                <path d="M112 96 L54 130 L16 250 L90 280 L104 238 L104 440 Q200 464 296 440 L296 238 L310 280 L384 250 L346 130 L288 96 Q250 66 200 68 Q150 66 112 96 Z" fill="url(#kc-shade)"/>
+                <path class="kc-fill" d="M140 92 Q142 44 200 42 Q258 44 260 92 Q262 116 200 122 Q138 116 140 92 Z" stroke="rgb(0 0 0 / 20%)" stroke-width="3"/>
+                <path d="M182 116 L178 168 M218 116 L222 168" fill="none" stroke="rgb(0 0 0 / 30%)" stroke-width="4" stroke-linecap="round"/>
+                <path class="kc-fill" d="M138 330 L262 330 L246 408 L154 408 Z" stroke="rgb(0 0 0 / 18%)" stroke-width="3"/>
+              </g>
 
-            <g data-kc-shape="hoodie-back" hidden>
-              <path class="kc-fill" d="M112 96 L54 130 L16 250 L90 280 L104 238 L104 440 Q200 464 296 440 L296 238 L310 280 L384 250 L346 130 L288 96 Q250 66 200 68 Q150 66 112 96 Z"/>
-              <path d="M112 96 L54 130 L16 250 L90 280 L104 238 L104 440 Q200 464 296 440 L296 238 L310 280 L384 250 L346 130 L288 96 Q250 66 200 68 Q150 66 112 96 Z" fill="url(#kc-shade)"/>
-              <path class="kc-fill" d="M148 96 Q150 60 200 58 Q250 60 252 96 Q254 110 200 114 Q146 110 148 96 Z" stroke="rgb(0 0 0 / 20%)" stroke-width="3"/>
-            </g>
-          </svg>
+              <g data-kc-shape="hoodie-back" hidden>
+                <path class="kc-fill" d="M112 96 L54 130 L16 250 L90 280 L104 238 L104 440 Q200 464 296 440 L296 238 L310 280 L384 250 L346 130 L288 96 Q250 66 200 68 Q150 66 112 96 Z"/>
+                <path d="M112 96 L54 130 L16 250 L90 280 L104 238 L104 440 Q200 464 296 440 L296 238 L310 280 L384 250 L346 130 L288 96 Q250 66 200 68 Q150 66 112 96 Z" fill="url(#kc-shade)"/>
+                <path class="kc-fill" d="M148 96 Q150 60 200 58 Q250 60 252 96 Q254 110 200 114 Q146 110 148 96 Z" stroke="rgb(0 0 0 / 20%)" stroke-width="3"/>
+              </g>
+            </svg>
+          {%- endif -%}
           <div class="kc__placements" data-kc-placements></div>
         </div>
       </div>
@@ -107,17 +187,24 @@
     </div>
 
     <div class="kc__panel">
-      <div class="kc__panel-group">
-        <span class="kc__panel-label">Color</span>
-        <div class="kc__colors" data-kc-colors>
-          <button type="button" data-kc-color="#ffffff" style="--c: #ffffff;" aria-current="true" aria-label="White"></button>
-          <button type="button" data-kc-color="#111111" style="--c: #111111;" aria-current="false" aria-label="Black"></button>
-          <button type="button" data-kc-color="#b7b7b7" style="--c: #b7b7b7;" aria-current="false" aria-label="Heather grey"></button>
-          <button type="button" data-kc-color="#c2b280" style="--c: #c2b280;" aria-current="false" aria-label="Sand"></button>
-          <button type="button" data-kc-color="#31425f" style="--c: #31425f;" aria-current="false" aria-label="Navy"></button>
-          <button type="button" data-kc-color="#6d1a24" style="--c: #6d1a24;" aria-current="false" aria-label="Wine"></button>
+      {%- if has_canvases -%}
+        <div class="kc__panel-group" data-kc-colorway-group hidden>
+          <span class="kc__panel-label">Colorway &mdash; <span data-kc-colorway-name></span></span>
+          <div class="kc__colorways" data-kc-colorways></div>
         </div>
-      </div>
+      {%- else -%}
+        <div class="kc__panel-group">
+          <span class="kc__panel-label">Color</span>
+          <div class="kc__colors" data-kc-colors>
+            <button type="button" data-kc-color="#ffffff" style="--c: #ffffff;" aria-current="true" aria-label="White"></button>
+            <button type="button" data-kc-color="#111111" style="--c: #111111;" aria-current="false" aria-label="Black"></button>
+            <button type="button" data-kc-color="#b7b7b7" style="--c: #b7b7b7;" aria-current="false" aria-label="Heather grey"></button>
+            <button type="button" data-kc-color="#c2b280" style="--c: #c2b280;" aria-current="false" aria-label="Sand"></button>
+            <button type="button" data-kc-color="#31425f" style="--c: #31425f;" aria-current="false" aria-label="Navy"></button>
+            <button type="button" data-kc-color="#6d1a24" style="--c: #6d1a24;" aria-current="false" aria-label="Wine"></button>
+          </div>
+        </div>
+      {%- endif -%}
 
       <div class="kc__panel-group">
         <span class="kc__panel-label">Designs &mdash; tap to place</span>
@@ -134,7 +221,7 @@
           Download preview
         </button>
         <p class="kc__note" data-kc-note hidden>
-          To sell custom pieces, pick the tee and hoodie products in this section's theme-editor settings.
+          To sell this piece, pick its product in this canvas block's theme-editor settings.
         </p>
       </div>
     </div>
@@ -149,10 +236,35 @@
   "settings": [
     { "type": "text", "id": "heading", "label": "Heading", "default": "Design studio" },
     { "type": "textarea", "id": "subtext", "label": "Subtext", "default": "Pick a garment, place our designs, make it yours." },
-    { "type": "product", "id": "tee_product", "label": "Custom tee product", "info": "The product added to cart for custom tees. The design is attached as line item properties on the order." },
-    { "type": "product", "id": "hoodie_product", "label": "Custom hoodie product" }
+    {
+      "type": "header",
+      "content": "Legacy fallback",
+      "info": "Only used when no Canvas blocks are configured below."
+    },
+    { "type": "product", "id": "tee_product", "label": "Custom tee product (fallback mode)" },
+    { "type": "product", "id": "hoodie_product", "label": "Custom hoodie product (fallback mode)" }
   ],
   "blocks": [
+    {
+      "type": "canvas",
+      "name": "Canvas (garment)",
+      "settings": [
+        { "type": "text", "id": "label", "label": "Name", "info": "Must match the card name on the picker page so clicking that card opens this garment.", "default": "Classic Tee" },
+        { "type": "product", "id": "product", "label": "Product to sell", "info": "Added to cart with the shopper's design attached as line item properties. Leave empty to hide add-to-cart for this garment." },
+        { "type": "header", "content": "Colorway 1" },
+        { "type": "text", "id": "color_1_name", "label": "Name", "default": "Standard" },
+        { "type": "image_picker", "id": "photo_1", "label": "Photo", "info": "Required. Plain front-facing photo of this garment in this colorway." },
+        { "type": "header", "content": "Colorway 2 (optional)" },
+        { "type": "text", "id": "color_2_name", "label": "Name" },
+        { "type": "image_picker", "id": "photo_2", "label": "Photo" },
+        { "type": "header", "content": "Colorway 3 (optional)" },
+        { "type": "text", "id": "color_3_name", "label": "Name" },
+        { "type": "image_picker", "id": "photo_3", "label": "Photo" },
+        { "type": "header", "content": "Colorway 4 (optional)" },
+        { "type": "text", "id": "color_4_name", "label": "Name" },
+        { "type": "image_picker", "id": "photo_4", "label": "Photo" }
+      ]
+    },
     {
       "type": "design",
       "name": "Design",

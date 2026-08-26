@@ -4,25 +4,15 @@
  * design studio can do, built from the same design images the studio
  * uses (no video file to produce or maintain).
  *
- * Used on the home page promo (with a visible design tray the cursor
- * picks from) and on the picker page's product cards (compact mode:
- * no tray, cursor enters from the corner).
+ * Placements land inside a configurable "print zone" (data-zone =
+ * "centerX,centerY,width,height" as percentages of the photo) so the
+ * designs sit on the garment instead of scattering across the frame.
+ *
+ * If the stage holds multiple [data-demo-frame] photos (colorways),
+ * each scene crossfades to the next one.
  */
 
-const SPOTS = [
-  [50, 36], [33, 30], [67, 30], [50, 54], [35, 56], [65, 56], [50, 70],
-];
-
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
-function shuffled(list) {
-  const copy = [...list];
-  for (let i = copy.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [copy[i], copy[j]] = [copy[j], copy[i]];
-  }
-  return copy;
-}
 
 class ShowcaseDemo extends HTMLElement {
   connectedCallback() {
@@ -30,8 +20,14 @@ class ShowcaseDemo extends HTMLElement {
     this.layer = this.querySelector('[data-demo-placements]');
     this.cursor = this.querySelector('[data-demo-cursor]');
     this.chips = Array.from(this.querySelectorAll('[data-demo-chip]'));
+    this.frames = Array.from(this.querySelectorAll('[data-demo-frame]'));
     this.compact = this.hasAttribute('data-compact');
     this.sceneOffset = 0;
+    this.frameIndex = 0;
+
+    const zone = (this.dataset.zone || '50,44,36,32').split(',').map(Number);
+    this.zone = { cx: zone[0], cy: zone[1], w: zone[2], h: zone[3] };
+    this.itemSize = Number(this.dataset.itemSize) || 22;
 
     try {
       // The Liquid-built array ends with a null sentinel (trailing-comma
@@ -64,10 +60,36 @@ class ShowcaseDemo extends HTMLElement {
     this.observer?.disconnect();
   }
 
-  renderStaticArrangement() {
-    const spots = SPOTS.slice(0, Math.min(3, this.designs.length));
-    spots.forEach(([x, y], i) => this.placeDesign(this.designs[i], x, y, false));
+  /* -- spot sampling inside the print zone ------------------------------ */
+
+  randomSpot() {
+    const { cx, cy, w, h } = this.zone;
+    return [cx - w / 2 + Math.random() * w, cy - h / 2 + Math.random() * h];
   }
+
+  sampleSpots(count) {
+    const spots = [];
+    const minDistance = Math.min(this.zone.w, this.zone.h) * 0.55;
+    let attempts = 0;
+    while (spots.length < count && attempts < 60) {
+      attempts += 1;
+      const candidate = this.randomSpot();
+      const tooClose = spots.some(
+        ([x, y]) => Math.hypot(x - candidate[0], y - candidate[1]) < minDistance
+      );
+      if (!tooClose) spots.push(candidate);
+    }
+    while (spots.length < count) spots.push(this.randomSpot());
+    return spots;
+  }
+
+  renderStaticArrangement() {
+    this.sampleSpots(Math.min(3, this.designs.length)).forEach(([x, y], i) =>
+      this.placeDesign(this.designs[i], x, y, false)
+    );
+  }
+
+  /* -- loop -------------------------------------------------------------- */
 
   start() {
     if (this.active) return;
@@ -77,6 +99,7 @@ class ShowcaseDemo extends HTMLElement {
 
   async loop() {
     while (this.active) {
+      this.advanceFrame();
       await this.playScene();
       if (!this.active) break;
       await wait(1800);
@@ -86,9 +109,17 @@ class ShowcaseDemo extends HTMLElement {
     this.cursor?.classList.remove('showcase__cursor--active');
   }
 
+  advanceFrame() {
+    if (this.frames.length < 2) return;
+    this.frameIndex = (this.frameIndex + 1) % this.frames.length;
+    this.frames.forEach((frame, i) =>
+      frame.classList.toggle('showcase__frame--active', i === this.frameIndex)
+    );
+  }
+
   async playScene() {
     const count = Math.min(this.compact ? 2 : 3, this.designs.length);
-    const spots = shuffled(SPOTS).slice(0, count);
+    const spots = this.sampleSpots(count);
 
     for (let i = 0; i < count; i += 1) {
       if (!this.active) return;
@@ -128,6 +159,7 @@ class ShowcaseDemo extends HTMLElement {
     el.className = `showcase__item${animate ? ' showcase__item--pop' : ''}`;
     el.style.left = `${x}%`;
     el.style.top = `${y}%`;
+    el.style.width = `${this.itemSize}%`;
     el.style.rotate = `${(Math.random() * 10 - 5).toFixed(1)}deg`;
     el.innerHTML = `<img src="${design.src}" alt="" loading="lazy" draggable="false">`;
     this.layer.appendChild(el);

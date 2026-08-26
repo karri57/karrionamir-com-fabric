@@ -167,6 +167,10 @@ class CartDrawer extends HTMLElement {
           .filter((o) => o.value !== 'Default Title')
           .map((o) => `${o.name}: ${o.value}`)
           .join(' · ');
+        const properties = Object.entries(item.properties || {})
+          .filter(([key, value]) => value && !key.startsWith('_'))
+          .map(([key, value]) => `<div class="cart-item__variant">${key}: ${value}</div>`)
+          .join('');
         return `
       <div class="cart-item">
         <a href="${item.url}" class="cart-item__media">
@@ -176,6 +180,7 @@ class CartDrawer extends HTMLElement {
           <a href="${item.url}" class="cart-item__title">${item.product_title}</a>
           <div class="cart-item__price">${formatMoney(item.final_line_price)}</div>
           ${options ? `<div class="cart-item__variant">${options}</div>` : ''}
+          ${properties}
           <div class="cart-item__controls">
             <form data-cart-update>
               <input type="hidden" name="id" value="${item.key}">

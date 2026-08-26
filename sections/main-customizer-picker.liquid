@@ -39,8 +39,8 @@
         <div class="picker__grid">
           {%- for block in section.blocks -%}
             {%- if block.type == 'product' and block.settings.garment == garment and block.settings.image != blank -%}
-              <a href="{{ designer_url }}?garment={{ garment }}" class="picker-card" {{ block.shopify_attributes }}>
-                <showcase-demo class="showcase picker-card__media" data-compact>
+              <a href="{{ designer_url }}?canvas={{ block.settings.label | handleize }}" class="picker-card" {{ block.shopify_attributes }}>
+                <showcase-demo class="showcase picker-card__media" data-compact data-zone="50,42,34,30">
                   <script type="application/json" data-demo-designs>
                     [
                       {%- for design_block in section.blocks -%}
@@ -57,10 +57,27 @@
                       alt="{{ block.settings.label | escape }}"
                       width="600"
                       height="{{ 600 | divided_by: block.settings.image.aspect_ratio | default: 750 }}"
-                      class="showcase__shirt"
+                      class="showcase__shirt showcase__frame showcase__frame--active"
+                      data-demo-frame
                       loading="lazy"
                       draggable="false"
                     >
+                    {%- assign extra_images = 'image_2,image_3,image_4' | split: ',' -%}
+                    {%- for image_key in extra_images -%}
+                      {%- assign extra = block.settings[image_key] -%}
+                      {%- if extra != blank -%}
+                        <img
+                          src="{{ extra | image_url: width: 600 }}"
+                          alt=""
+                          width="600"
+                          height="{{ 600 | divided_by: extra.aspect_ratio | default: 750 }}"
+                          class="showcase__frame"
+                          data-demo-frame
+                          loading="lazy"
+                          draggable="false"
+                        >
+                      {%- endif -%}
+                    {%- endfor -%}
                     <div class="showcase__layer" data-demo-placements></div>
                   </div>
                   <div class="showcase__cursor showcase__cursor--small" data-demo-cursor aria-hidden="true">
@@ -118,8 +135,11 @@
           ],
           "default": "tee"
         },
-        { "type": "text", "id": "label", "label": "Name", "default": "Classic Tee" },
-        { "type": "image_picker", "id": "image", "label": "Photo", "info": "Plain, front-facing photo (flat lay works best) — the design animation plays on top of it." }
+        { "type": "text", "id": "label", "label": "Name", "info": "Must match the canvas name in the Designer page's section so clicking this card opens the right garment.", "default": "Classic Tee" },
+        { "type": "image_picker", "id": "image", "label": "Photo", "info": "Plain, front-facing photo (flat lay works best) — the design animation plays on top of it." },
+        { "type": "image_picker", "id": "image_2", "label": "Colorway photo 2 (optional)", "info": "The card flashes between all provided colorway photos." },
+        { "type": "image_picker", "id": "image_3", "label": "Colorway photo 3 (optional)" },
+        { "type": "image_picker", "id": "image_4", "label": "Colorway photo 4 (optional)" }
       ]
     },
     {
