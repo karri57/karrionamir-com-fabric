@@ -1491,6 +1491,134 @@ p {
   filter: drop-shadow(0 20px 30px rgb(0 0 0 / 12%));
 }
 
+/* -- Home page drag-and-drop demo ------------------------------------- */
+.promo-demo {
+  display: block;
+  width: 100%;
+  max-width: 26rem;
+  margin-inline: auto;
+}
+
+.promo-demo__stage {
+  position: relative;
+  background: var(--color-bg);
+  border-radius: var(--radius);
+  overflow: hidden;
+  filter: drop-shadow(0 20px 30px rgb(0 0 0 / 12%));
+  outline: 2px dashed transparent;
+  outline-offset: -2px;
+  transition: outline-color 0.15s ease;
+}
+
+.promo-demo__stage--hover {
+  outline-color: rgb(from var(--color-fg) r g b / 35%);
+}
+
+.promo-demo__shirt {
+  display: block;
+  width: 100%;
+  height: auto;
+  pointer-events: none;
+}
+
+.promo-demo__placements {
+  position: absolute;
+  inset: 0;
+}
+
+.promo-demo__item {
+  position: absolute;
+  width: 26%;
+  translate: -50% -50%;
+  cursor: grab;
+  touch-action: none;
+  filter: drop-shadow(0 2px 6px rgb(0 0 0 / 20%));
+}
+
+.promo-demo__item--dragging {
+  cursor: grabbing;
+  opacity: 0.85;
+}
+
+.promo-demo__item img {
+  width: 100%;
+  height: auto;
+  pointer-events: none;
+  user-select: none;
+}
+
+.promo-demo__hint {
+  position: absolute;
+  left: 50%;
+  bottom: 1rem;
+  translate: -50% 0;
+  font-size: 0.75rem;
+  padding: 0.4rem 0.8rem;
+  border-radius: 999px;
+  background: rgb(0 0 0 / 55%);
+  color: #fff;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.promo-demo__tray-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.promo-demo__tray {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.promo-demo__design {
+  width: 3.25rem;
+  height: 3.25rem;
+  padding: 0.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-bg);
+  cursor: grab;
+  touch-action: none;
+}
+
+.promo-demo__design:hover {
+  border-color: var(--color-fg);
+}
+
+.promo-demo__design img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.promo-demo__clear {
+  font-size: 0.75rem;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  color: rgb(from var(--color-fg) r g b / 60%);
+  white-space: nowrap;
+}
+
+.promo-demo__ghost {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 3.5rem;
+  translate: -50% -50%;
+  pointer-events: none;
+  z-index: 999;
+  opacity: 0.9;
+  filter: drop-shadow(0 4px 10px rgb(0 0 0 / 25%));
+}
+
 /* ==========================================================================
    Design studio (customizer)
    ========================================================================== */

@@ -139,5 +139,11 @@
       "copy_code": "Copy code",
       "print_gift_card": "Print"
     }
+  },
+  "sections": {
+    "customizer_promo": {
+      "drag_hint": "Drag a design onto the shirt — double-tap a placed design to remove it",
+      "clear": "Clear"
+    }
   }
 }

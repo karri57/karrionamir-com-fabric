@@ -17,7 +17,51 @@
     </div>
 
     <div class="customizer-promo__visual">
-      {%- if section.settings.image != blank -%}
+      {%- if section.settings.shirt_image != blank -%}
+        <promo-demo class="promo-demo">
+          <div class="promo-demo__stage" data-promo-stage>
+            <img
+              src="{{ section.settings.shirt_image | image_url: width: 900 }}"
+              alt="{{ section.settings.shirt_image.alt | escape }}"
+              width="900"
+              height="{{ 900 | divided_by: section.settings.shirt_image.aspect_ratio | default: 900 }}"
+              class="promo-demo__shirt"
+              draggable="false"
+            >
+            <div class="promo-demo__placements" data-promo-placements></div>
+            <p class="promo-demo__hint" data-promo-hint>{{ 'sections.customizer_promo.drag_hint' | t }}</p>
+          </div>
+
+          <div class="promo-demo__tray-row">
+            <div class="promo-demo__tray" data-promo-tray>
+              {%- for block in section.blocks -%}
+                {%- if block.type == 'design' and block.settings.image != blank -%}
+                  <button
+                    type="button"
+                    class="promo-demo__design"
+                    data-promo-design
+                    data-src="{{ block.settings.image | image_url: width: 300 }}"
+                    aria-label="{{ block.settings.label | default: 'Design' }}"
+                    {{ block.shopify_attributes }}
+                  >
+                    <img
+                      src="{{ block.settings.image | image_url: width: 150 }}"
+                      alt="{{ block.settings.label }}"
+                      width="150"
+                      height="{{ 150 | divided_by: block.settings.image.aspect_ratio | default: 150 }}"
+                      loading="lazy"
+                      draggable="false"
+                    >
+                  </button>
+                {%- endif -%}
+              {%- endfor -%}
+            </div>
+            <button type="button" class="promo-demo__clear" data-promo-clear>{{ 'sections.customizer_promo.clear' | t }}</button>
+          </div>
+        </promo-demo>
+
+        <script src="{{ 'customizer-promo.js' | asset_url }}" type="module"></script>
+      {%- elsif section.settings.image != blank -%}
         <img
           src="{{ section.settings.image | image_url: width: 900 }}"
           alt="{{ section.settings.image.alt | escape }}"
@@ -44,10 +88,31 @@
     { "type": "text", "id": "eyebrow", "label": "Eyebrow", "default": "KA Studio" },
     { "type": "text", "id": "heading_solid", "label": "Heading (solid)", "default": "Design it" },
     { "type": "text", "id": "heading_outline", "label": "Heading (outlined)", "default": "yourself" },
-    { "type": "textarea", "id": "text", "label": "Text", "default": "Put our designs where you want them. Pick a tee or hoodie, place the graphics, make it yours." },
+    { "type": "textarea", "id": "text", "label": "Text", "default": "Grab a design and drop it anywhere on the shirt — see what's possible, then build the real thing." },
     { "type": "text", "id": "button_label", "label": "Button label", "default": "Start designing" },
     { "type": "url", "id": "link", "label": "Button link", "info": "Defaults to /pages/design-studio" },
-    { "type": "image_picker", "id": "image", "label": "Visual (optional)", "info": "Replaces the built-in tee illustration." }
+    {
+      "type": "image_picker",
+      "id": "shirt_image",
+      "label": "Shirt photo (interactive demo)",
+      "info": "A plain, front-facing photo of a blank shirt (flat lay or on a mannequin works best). When set, this becomes a live drag-and-drop demo using the designs below instead of a static image."
+    },
+    {
+      "type": "image_picker",
+      "id": "image",
+      "label": "Static visual (fallback)",
+      "info": "Only used if no shirt photo above is set. Replaces the built-in tee illustration."
+    }
+  ],
+  "blocks": [
+    {
+      "type": "design",
+      "name": "Design",
+      "settings": [
+        { "type": "text", "id": "label", "label": "Name", "default": "Logo" },
+        { "type": "image_picker", "id": "image", "label": "Design image", "info": "Transparent PNGs work best." }
+      ]
+    }
   ],
   "presets": [
     { "name": "Customizer promo" }
