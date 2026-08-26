@@ -1,5 +1,15 @@
+/*
+ * ------------------------------------------------------------
+ * IMPORTANT: The contents of this file are auto-generated.
+ *
+ * This file may be updated by the Shopify admin theme editor
+ * or related systems. Please exercise caution as any changes
+ * made to this file may be overwritten.
+ * ------------------------------------------------------------
+ */
 {
   "current": {
+    "logo": "shopify://shop_images/IMG_9848.png",
     "logo_width": 140,
     "color_background": "#ffffff",
     "color_foreground": "#030302",
@@ -17,14 +27,13 @@
       "header": {
         "type": "header",
         "settings": {
+          "menu": "main-menu",
           "sticky": true
         }
       },
       "footer": {
         "type": "footer",
-        "settings": {
-          "show_newsletter": true
-        }
+        "settings": {}
       }
     },
     "content_for_index": []
