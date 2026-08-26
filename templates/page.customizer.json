@@ -16,7 +16,7 @@
           "type": "canvas",
           "settings": {
             "label": "Classic Tee",
-            "product": "",
+            "product": "custom-classic-tee",
             "color_1_name": "Standard",
             "photo_1": "shopify://shop_images/IMG_1444.jpg",
             "color_2_name": "",
@@ -28,7 +28,7 @@
           "type": "canvas",
           "settings": {
             "label": "Classic Hoodie",
-            "product": "",
+            "product": "custom-classic-hoodie",
             "color_1_name": "Standard",
             "photo_1": "shopify://shop_images/IMG_1334.jpg",
             "color_2_name": "",
@@ -55,7 +55,7 @@
           "type": "canvas",
           "settings": {
             "label": "Classic Sweater",
-            "product": "",
+            "product": "custom-classic-sweater",
             "color_1_name": "Standard",
             "photo_1": "shopify://shop_images/IMG_1439.jpg",
             "color_2_name": "",
@@ -67,7 +67,7 @@
           "type": "canvas",
           "settings": {
             "label": "Washed Hoodie",
-            "product": "",
+            "product": "custom-washed-hoodie",
             "color_1_name": "Standard",
             "photo_1": "shopify://shop_images/IMG_1413_fc522466-4295-47a9-8832-1ddbefa9059b.jpg",
             "color_2_name": "",

@@ -96,7 +96,7 @@ class KaCustomizer extends HTMLElement {
   }
 
   get key() {
-    return this.photoMode ? this.currentCanvas.key : `${this.state.garment}-${this.state.view}`;
+    return this.photoMode ? `${this.currentCanvas.key}-${this.state.view}` : `${this.state.garment}-${this.state.view}`;
   }
 
   get currentPlacements() {
@@ -260,6 +260,7 @@ class KaCustomizer extends HTMLElement {
   setCanvas(index) {
     this.state.canvasIndex = index;
     this.state.colorwayIndex = 0;
+    this.state.view = 'front';
     this.state.selected = null;
 
     // Honor a colorway carried over from the picker page, once.
@@ -277,6 +278,13 @@ class KaCustomizer extends HTMLElement {
     this.querySelectorAll('[data-kc-canvas]').forEach((b) =>
       b.setAttribute('aria-current', b.dataset.kcCanvas === this.currentCanvas.key ? 'true' : 'false')
     );
+    const viewGroup = this.querySelector('[data-kc-photo-view-group]');
+    if (viewGroup) {
+      viewGroup.hidden = !this.currentCanvas.colorways.some((c) => c.back);
+      viewGroup.querySelectorAll('[data-kc-view]').forEach((b) =>
+        b.setAttribute('aria-current', b.dataset.kcView === 'front' ? 'true' : 'false')
+      );
+    }
     this.updatePhoto();
     this.renderColorways();
     this.renderSizes();
@@ -286,8 +294,16 @@ class KaCustomizer extends HTMLElement {
 
   setColorway(index) {
     this.state.colorwayIndex = index;
+    if (this.state.view === 'back' && !this.currentCanvas.colorways[index]?.back) {
+      this.state.view = 'front';
+      this.querySelectorAll('[data-kc-photo-view-group] [data-kc-view]').forEach((b) =>
+        b.setAttribute('aria-current', b.dataset.kcView === 'front' ? 'true' : 'false')
+      );
+    }
+    this.state.selected = null;
     this.updatePhoto();
     this.renderColorways();
+    this.renderPlacements();
   }
 
   setSize(index) {
@@ -299,8 +315,9 @@ class KaCustomizer extends HTMLElement {
   updatePhoto() {
     if (!this.photoEl) return;
     const colorway = this.currentCanvas.colorways[this.state.colorwayIndex] || this.currentCanvas.colorways[0];
-    this.photoEl.src = colorway.src;
-    this.photoEl.alt = `${this.currentCanvas.label} — ${colorway.name}`;
+    const showBack = this.state.view === 'back' && colorway.back;
+    this.photoEl.src = showBack ? colorway.back : colorway.front;
+    this.photoEl.alt = `${this.currentCanvas.label} — ${colorway.name}${showBack ? ' (back)' : ''}`;
   }
 
   renderColorways() {
@@ -317,7 +334,7 @@ class KaCustomizer extends HTMLElement {
       .map(
         (c, i) => `
       <button type="button" class="kc__colorway" data-kc-colorway="${i}" aria-current="${i === this.state.colorwayIndex}" title="${c.name}">
-        <img src="${c.src}" alt="${c.name}" loading="lazy">
+        <img src="${c.front}" alt="${c.name}" loading="lazy">
       </button>`
       )
       .join('');
@@ -361,7 +378,12 @@ class KaCustomizer extends HTMLElement {
     this.querySelectorAll('[data-kc-view]').forEach((b) =>
       b.setAttribute('aria-current', b.dataset.kcView === view ? 'true' : 'false')
     );
-    this.updateGarment();
+    if (this.photoMode) {
+      this.updatePhoto();
+      this.renderPlacements();
+    } else {
+      this.updateGarment();
+    }
   }
 
   setColor(button) {
@@ -397,7 +419,12 @@ class KaCustomizer extends HTMLElement {
 
   feeDollars() {
     if (!this.feesEnabled || !this.photoMode) return 0;
-    return this.currentPlacements.reduce((sum, p) => sum + Math.max(0, Math.round(this.config.designs[p.design]?.price || 0)), 0);
+    const canvas = this.currentCanvas;
+    const all = [
+      ...(this.state.placements[`${canvas.key}-front`] || []),
+      ...(this.state.placements[`${canvas.key}-back`] || []),
+    ];
+    return all.reduce((sum, p) => sum + Math.max(0, Math.round(this.config.designs[p.design]?.price || 0)), 0);
   }
 
   updateCommerce() {
@@ -467,8 +494,13 @@ class KaCustomizer extends HTMLElement {
 
   summarize() {
     if (this.photoMode) {
-      const list = this.currentPlacements;
-      return list.length ? list.map((p) => this.describePlacement(p)).join('; ') : 'blank';
+      const canvas = this.currentCanvas;
+      const sides = [
+        ['Front', this.state.placements[`${canvas.key}-front`] || []],
+        ['Back', this.state.placements[`${canvas.key}-back`] || []],
+      ].filter(([, list]) => list.length > 0);
+      if (sides.length === 0) return 'blank';
+      return sides.map(([side, list]) => `${side}: ${list.map((p) => this.describePlacement(p)).join('; ')}`).join(' | ');
     }
     const parts = [];
     for (const [key, list] of Object.entries(this.state.placements)) {
@@ -492,15 +524,12 @@ class KaCustomizer extends HTMLElement {
   }
 
   async renderPreview() {
+    if (this.photoMode) return this.renderPhotoPreview();
+
     const width = 900;
     let baseImage = null;
     let svgUrl = null;
-
-    if (this.photoMode) {
-      const colorway = this.currentCanvas.colorways[this.state.colorwayIndex];
-      baseImage = await this.loadImage(colorway.src, true);
-      if (!baseImage) return null;
-    } else {
+    try {
       const svg = this.querySelector('[data-kc-garment-svg]').cloneNode(true);
       svg.querySelectorAll('[data-kc-shape]').forEach((g) => {
         if (g.dataset.kcShape !== `${this.state.garment}-${this.state.view}`) g.remove();
@@ -511,13 +540,9 @@ class KaCustomizer extends HTMLElement {
       svg.setAttribute('height', 1080);
       svgUrl = URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(svg)], { type: 'image/svg+xml' }));
       baseImage = await this.loadImage(svgUrl, false);
-    }
-
-    try {
       if (!baseImage) return null;
-      const height = this.photoMode
-        ? Math.round(width * (baseImage.naturalHeight / baseImage.naturalWidth))
-        : 1080;
+
+      const height = 1080;
       const canvas = document.createElement('canvas');
       canvas.width = width;
       canvas.height = height;
@@ -525,26 +550,68 @@ class KaCustomizer extends HTMLElement {
       ctx.fillStyle = '#f5f5f5';
       ctx.fillRect(0, 0, width, height);
       ctx.drawImage(baseImage, 0, 0, width, height);
-
-      for (const p of this.currentPlacements) {
-        const design = this.config.designs[p.design];
-        if (!design) continue;
-        const img = await this.loadImage(design.src, true);
-        if (!img) continue;
-        const w = width * 0.24 * p.scale;
-        const h = w * (img.naturalHeight / img.naturalWidth);
-        ctx.save();
-        ctx.translate((p.x / 100) * width, (p.y / 100) * height);
-        ctx.rotate((p.rot * Math.PI) / 180);
-        ctx.drawImage(img, -w / 2, -h / 2, w, h);
-        ctx.restore();
-      }
+      await this.paintPlacements(ctx, this.currentPlacements, 0, width, height);
       return canvas;
     } catch (error) {
       console.error('[studio] preview render failed:', error);
       return null;
     } finally {
       if (svgUrl) URL.revokeObjectURL(svgUrl);
+    }
+  }
+
+  async paintPlacements(ctx, placements, offsetX, panelWidth, panelHeight) {
+    for (const p of placements) {
+      const design = this.config.designs[p.design];
+      if (!design) continue;
+      const img = await this.loadImage(design.src, true);
+      if (!img) continue;
+      const w = panelWidth * 0.24 * p.scale;
+      const h = w * (img.naturalHeight / img.naturalWidth);
+      ctx.save();
+      ctx.translate(offsetX + (p.x / 100) * panelWidth, (p.y / 100) * panelHeight);
+      ctx.rotate((p.rot * Math.PI) / 180);
+      ctx.drawImage(img, -w / 2, -h / 2, w, h);
+      ctx.restore();
+    }
+  }
+
+  async renderPhotoPreview() {
+    try {
+      const width = 900;
+      const canvasDef = this.currentCanvas;
+      const colorway = canvasDef.colorways[this.state.colorwayIndex];
+      const frontPlacements = this.state.placements[`${canvasDef.key}-front`] || [];
+      const backPlacements = this.state.placements[`${canvasDef.key}-back`] || [];
+      const showBack = Boolean(colorway.back) && backPlacements.length > 0;
+
+      const frontImage = await this.loadImage(colorway.front, true);
+      if (!frontImage) return null;
+      const backImage = showBack ? await this.loadImage(colorway.back, true) : null;
+
+      const gap = showBack ? 8 : 0;
+      const panelWidth = showBack ? Math.round((width - gap) / 2) : width;
+      const panelHeight = Math.round(panelWidth * (frontImage.naturalHeight / frontImage.naturalWidth));
+
+      const canvas = document.createElement('canvas');
+      canvas.width = showBack ? panelWidth * 2 + gap : panelWidth;
+      canvas.height = panelHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#f5f5f5';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.drawImage(frontImage, 0, 0, panelWidth, panelHeight);
+      await this.paintPlacements(ctx, frontPlacements, 0, panelWidth, panelHeight);
+
+      if (showBack && backImage) {
+        const backX = panelWidth + gap;
+        ctx.drawImage(backImage, backX, 0, panelWidth, panelHeight);
+        await this.paintPlacements(ctx, backPlacements, backX, panelWidth, panelHeight);
+      }
+      return canvas;
+    } catch (error) {
+      console.error('[studio] preview render failed:', error);
+      return null;
     }
   }
 
@@ -600,7 +667,12 @@ class KaCustomizer extends HTMLElement {
       _config: JSON.stringify({
         canvas: this.photoMode ? this.currentCanvas.key : this.state.garment,
         colorway: this.photoMode ? this.currentCanvas.colorways[this.state.colorwayIndex]?.name : this.state.color,
-        placements: this.currentPlacements,
+        placements: this.photoMode
+          ? {
+              front: this.state.placements[`${this.currentCanvas.key}-front`] || [],
+              back: this.state.placements[`${this.currentCanvas.key}-back`] || [],
+            }
+          : this.currentPlacements,
       }),
     };
   }
@@ -657,7 +729,7 @@ class KaCustomizer extends HTMLElement {
       return;
     }
     const link = document.createElement('a');
-    link.download = `ka-custom-${this.key}.png`;
+    link.download = `ka-custom-${this.photoMode ? this.currentCanvas.key : this.key}.png`;
     link.href = canvas.toDataURL('image/png');
     link.click();
   }

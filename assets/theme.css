@@ -1766,8 +1766,9 @@ p {
 
 .kc__toolbar {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
-  gap: 1rem;
+  gap: 0.75rem 1rem;
   margin-bottom: 1rem;
 }
 
@@ -1795,6 +1796,12 @@ p {
   overflow-x: auto;
   padding-bottom: 0.25rem;
   scrollbar-width: none;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.kc__toolbar > .kc__toggle {
+  flex: 0 0 auto;
 }
 
 .kc__canvas-tabs::-webkit-scrollbar {

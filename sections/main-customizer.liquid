@@ -62,15 +62,31 @@
                 null
               ],
               "colorways": [
-                { "name": {{ block.settings.color_1_name | default: 'Standard' | json }}, "src": {{ block.settings.photo_1 | image_url: width: 900 | json }} },
+                {
+                  "name": {{ block.settings.color_1_name | default: 'Standard' | json }},
+                  "front": {{ block.settings.photo_1 | image_url: width: 900 | json }},
+                  "back": {{ block.settings.photo_1_back | image_url: width: 900 | json }}
+                },
                 {%- if block.settings.photo_2 != blank -%}
-                  { "name": {{ block.settings.color_2_name | default: 'Colorway 2' | json }}, "src": {{ block.settings.photo_2 | image_url: width: 900 | json }} },
+                  {
+                    "name": {{ block.settings.color_2_name | default: 'Colorway 2' | json }},
+                    "front": {{ block.settings.photo_2 | image_url: width: 900 | json }},
+                    "back": {{ block.settings.photo_2_back | image_url: width: 900 | json }}
+                  },
                 {%- endif -%}
                 {%- if block.settings.photo_3 != blank -%}
-                  { "name": {{ block.settings.color_3_name | default: 'Colorway 3' | json }}, "src": {{ block.settings.photo_3 | image_url: width: 900 | json }} },
+                  {
+                    "name": {{ block.settings.color_3_name | default: 'Colorway 3' | json }},
+                    "front": {{ block.settings.photo_3 | image_url: width: 900 | json }},
+                    "back": {{ block.settings.photo_3_back | image_url: width: 900 | json }}
+                  },
                 {%- endif -%}
                 {%- if block.settings.photo_4 != blank -%}
-                  { "name": {{ block.settings.color_4_name | default: 'Colorway 4' | json }}, "src": {{ block.settings.photo_4 | image_url: width: 900 | json }} },
+                  {
+                    "name": {{ block.settings.color_4_name | default: 'Colorway 4' | json }},
+                    "front": {{ block.settings.photo_4 | image_url: width: 900 | json }},
+                    "back": {{ block.settings.photo_4_back | image_url: width: 900 | json }}
+                  },
                 {%- endif -%}
                 null
               ]
@@ -119,6 +135,10 @@
                 </button>
               {%- endif -%}
             {%- endfor -%}
+          </div>
+          <div class="kc__toggle" role="tablist" aria-label="Side" data-kc-photo-view-group hidden>
+            <button type="button" data-kc-view="front" aria-current="true">Front</button>
+            <button type="button" data-kc-view="back" aria-current="false">Back</button>
           </div>
         {%- else -%}
           <div class="kc__toggle" role="tablist" aria-label="Garment">
@@ -285,16 +305,20 @@
         { "type": "product", "id": "product", "label": "Product to sell", "info": "Added to cart with the shopper's design attached as line item properties. Leave empty to hide add-to-cart for this garment." },
         { "type": "header", "content": "Colorway 1" },
         { "type": "text", "id": "color_1_name", "label": "Name", "default": "Standard" },
-        { "type": "image_picker", "id": "photo_1", "label": "Photo", "info": "Required. Plain front-facing photo of this garment in this colorway." },
+        { "type": "image_picker", "id": "photo_1", "label": "Front photo", "info": "Required. Plain front-facing photo of this garment in this colorway." },
+        { "type": "image_picker", "id": "photo_1_back", "label": "Back photo", "info": "Optional. Lets shoppers flip to the back to place designs there too." },
         { "type": "header", "content": "Colorway 2 (optional)" },
         { "type": "text", "id": "color_2_name", "label": "Name" },
-        { "type": "image_picker", "id": "photo_2", "label": "Photo" },
+        { "type": "image_picker", "id": "photo_2", "label": "Front photo" },
+        { "type": "image_picker", "id": "photo_2_back", "label": "Back photo" },
         { "type": "header", "content": "Colorway 3 (optional)" },
         { "type": "text", "id": "color_3_name", "label": "Name" },
-        { "type": "image_picker", "id": "photo_3", "label": "Photo" },
+        { "type": "image_picker", "id": "photo_3", "label": "Front photo" },
+        { "type": "image_picker", "id": "photo_3_back", "label": "Back photo" },
         { "type": "header", "content": "Colorway 4 (optional)" },
         { "type": "text", "id": "color_4_name", "label": "Name" },
-        { "type": "image_picker", "id": "photo_4", "label": "Photo" }
+        { "type": "image_picker", "id": "photo_4", "label": "Front photo" },
+        { "type": "image_picker", "id": "photo_4_back", "label": "Back photo" }
       ]
     },
     {
