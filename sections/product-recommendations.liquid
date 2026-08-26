@@ -1,29 +1,34 @@
 {%- comment -%}
-  Real Shopify product recommendations, rendered as a horizontally scrollable carousel.
+  Shopify product recommendations via the Section Rendering API:
+  the section first renders as an empty shell carrying data-url; the
+  product-recommendations custom element fetches that URL (the
+  recommendations endpoint re-renders this same section, where the
+  `recommendations` object is populated) and swaps in the result.
 {%- endcomment -%}
 
-<div class="section page-width">
-  {%- recommendations product: product, limit: section.settings.limit -%}
-    {%- if recommendations.performed and recommendations.products_count > 0 -%}
-      <div class="section__header">
-        {%- if section.settings.heading != blank -%}
-          <h2 class="section__heading">{{ section.settings.heading }}</h2>
-        {%- endif -%}
-        <a href="{{ routes.all_products_collection_url }}" class="section__link">
-          {{ 'collections.general.view_more' | t }}
-        </a>
-      </div>
+<product-recommendations
+  class="section page-width"
+  data-url="{{ routes.product_recommendations_url }}?section_id={{ section.id }}&product_id={{ product.id }}&limit={{ section.settings.limit }}"
+>
+  {%- if recommendations.performed and recommendations.products_count > 0 -%}
+    <div class="section__header">
+      {%- if section.settings.heading != blank -%}
+        <h2 class="section__heading">{{ section.settings.heading }}</h2>
+      {%- endif -%}
+      <a href="{{ routes.all_products_collection_url }}" class="section__link">
+        {{ 'collections.general.view_more' | t }}
+      </a>
+    </div>
 
-      <div class="carousel-row">
-        {%- for product in recommendations.products -%}
-          <div class="carousel-row__item">
-            {%- render 'product-card', product: product -%}
-          </div>
-        {%- endfor -%}
-      </div>
-    {%- endif -%}
-  {%- endrecommendations -%}
-</div>
+    <div class="carousel-row">
+      {%- for rec_product in recommendations.products -%}
+        <div class="carousel-row__item">
+          {%- render 'product-card', product: rec_product -%}
+        </div>
+      {%- endfor -%}
+    </div>
+  {%- endif -%}
+</product-recommendations>
 
 {% schema %}
 {

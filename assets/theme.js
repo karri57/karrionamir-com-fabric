@@ -467,6 +467,26 @@ window.themeRecentlyViewed = {
   },
 };
 
+/* -------------------------------------------------------------------------
+ * Product recommendations: fetch the section re-rendered by Shopify's
+ * recommendations endpoint and swap in the populated markup
+ * ---------------------------------------------------------------------- */
+class ProductRecommendations extends HTMLElement {
+  connectedCallback() {
+    const url = this.dataset.url;
+    if (!url) return;
+    fetch(url)
+      .then((response) => response.text())
+      .then((text) => {
+        const doc = new DOMParser().parseFromString(text, 'text/html');
+        const fresh = doc.querySelector('product-recommendations');
+        if (fresh && fresh.innerHTML.trim().length) this.innerHTML = fresh.innerHTML;
+      })
+      .catch(() => {});
+  }
+}
+customElements.define('product-recommendations', ProductRecommendations);
+
 class RecentlyViewedProducts extends HTMLElement {
   connectedCallback() {
     const excludeId = Number(this.dataset.excludeId);
