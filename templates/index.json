@@ -33,7 +33,14 @@
     },
     "customizer-promo": {
       "type": "customizer-promo",
-      "settings": {}
+      "settings": {
+        "eyebrow": "KA Studio",
+        "heading_solid": "Design it",
+        "heading_outline": "yourself",
+        "text": "Create your own clothing about Jesus, and have a chance to win our pick and receive a gift card worth 100$.",
+        "button_label": "Start designing",
+        "link": ""
+      }
     }
   },
   "order": [
