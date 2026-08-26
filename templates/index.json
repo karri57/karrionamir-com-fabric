@@ -1,12 +1,23 @@
+/*
+ * ------------------------------------------------------------
+ * IMPORTANT: The contents of this file are auto-generated.
+ *
+ * This file may be updated by the Shopify admin theme editor
+ * or related systems. Please exercise caution as any changes
+ * made to this file may be overwritten.
+ * ------------------------------------------------------------
+ */
 {
   "sections": {
     "hero": {
       "type": "hero",
       "settings": {
+        "image": "shopify://shop_images/IMG_0979.jpg",
         "heading": "New this season",
         "text": "A collection of inspired silhouettes crafted from the finest fibers.",
         "button_label": "Shop now",
-        "button_link": "shopify://collections/all"
+        "button_link": "shopify://collections/all",
+        "button_style": "outline"
       }
     },
     "new-arrivals": {
@@ -21,5 +32,8 @@
       }
     }
   },
-  "order": ["hero", "new-arrivals"]
+  "order": [
+    "hero",
+    "new-arrivals"
+  ]
 }
