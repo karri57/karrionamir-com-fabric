@@ -110,11 +110,21 @@ class ShowcaseDemo extends HTMLElement {
   }
 
   advanceFrame() {
-    if (this.frames.length < 2) return;
-    this.frameIndex = (this.frameIndex + 1) % this.frames.length;
+    // A shopper-picked colorway pins the frame; stop cycling.
+    if (this.pinnedFrame != null || this.frames.length < 2) return;
+    this.showFrame((this.frameIndex + 1) % this.frames.length);
+  }
+
+  showFrame(index) {
+    this.frameIndex = index;
     this.frames.forEach((frame, i) =>
-      frame.classList.toggle('showcase__frame--active', i === this.frameIndex)
+      frame.classList.toggle('showcase__frame--active', i === index)
     );
+  }
+
+  pinFrame(index) {
+    this.pinnedFrame = index;
+    this.showFrame(index);
   }
 
   async playScene() {
@@ -210,3 +220,28 @@ class ShowcaseDemo extends HTMLElement {
 }
 
 customElements.define('showcase-demo', ShowcaseDemo);
+
+/* -------------------------------------------------------------------------
+ * Picker cards: choosing a colorway swatch pins that photo on the card and
+ * carries the choice into the designer link.
+ * ---------------------------------------------------------------------- */
+document.addEventListener('click', (event) => {
+  const swatch = event.target.closest('[data-picker-swatch]');
+  if (!swatch) return;
+
+  const card = swatch.closest('.picker-card');
+  if (!card) return;
+
+  card.querySelectorAll('[data-picker-swatch]').forEach((el) =>
+    el.setAttribute('aria-current', el === swatch ? 'true' : 'false')
+  );
+
+  card.querySelector('showcase-demo')?.pinFrame(Number(swatch.dataset.pickerSwatch));
+
+  const link = card.querySelector('.picker-card__link');
+  if (link && swatch.dataset.colorway) {
+    const url = new URL(link.getAttribute('href'), window.location.origin);
+    url.searchParams.set('colorway', swatch.dataset.colorway);
+    link.setAttribute('href', `${url.pathname}${url.search}`);
+  }
+});

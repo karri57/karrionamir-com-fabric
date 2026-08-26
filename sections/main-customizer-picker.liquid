@@ -39,7 +39,15 @@
         <div class="picker__grid">
           {%- for block in section.blocks -%}
             {%- if block.type == 'product' and block.settings.garment == garment and block.settings.image != blank -%}
-              <a href="{{ designer_url }}?canvas={{ block.settings.label | handleize }}" class="picker-card" {{ block.shopify_attributes }}>
+              {%- liquid
+                assign colorway_names = block.settings.color_1_name | default: 'Standard'
+                assign colorway_names = colorway_names | append: '||' | append: block.settings.color_2_name
+                assign colorway_names = colorway_names | append: '||' | append: block.settings.color_3_name
+                assign colorway_names = colorway_names | append: '||' | append: block.settings.color_4_name
+                assign colorway_names = colorway_names | split: '||'
+              -%}
+              <div class="picker-card" {{ block.shopify_attributes }}>
+              <a href="{{ designer_url }}?canvas={{ block.settings.label | handleize }}" class="picker-card__link">
                 <showcase-demo class="showcase picker-card__media" data-compact data-zone="50,42,34,30">
                   <script type="application/json" data-demo-designs>
                     [
@@ -89,6 +97,43 @@
                 <div class="picker-card__label">{{ block.settings.label }}</div>
                 <span class="picker-card__cta">{{ section.settings.card_cta }}</span>
               </a>
+
+              {%- assign colorway_images = 'image,image_2,image_3,image_4' | split: ',' -%}
+              {%- assign swatch_count = 0 -%}
+              {%- for image_key in colorway_images -%}
+                {%- if block.settings[image_key] != blank -%}
+                  {%- assign swatch_count = swatch_count | plus: 1 -%}
+                {%- endif -%}
+              {%- endfor -%}
+
+              {%- if swatch_count > 1 -%}
+                <div class="picker-card__swatches">
+                  {%- for image_key in colorway_images -%}
+                    {%- assign colorway_image = block.settings[image_key] -%}
+                    {%- if colorway_image != blank -%}
+                      {%- assign colorway_name = colorway_names[forloop.index0] | default: 'Colorway' -%}
+                      <button
+                        type="button"
+                        class="picker-card__swatch"
+                        data-picker-swatch="{{ forloop.index0 }}"
+                        data-colorway="{{ colorway_name | handleize }}"
+                        aria-current="{% if forloop.first %}true{% else %}false{% endif %}"
+                        title="{{ colorway_name | escape }}"
+                        aria-label="{{ colorway_name | escape }}"
+                      >
+                        <img
+                          src="{{ colorway_image | image_url: width: 120 }}"
+                          alt=""
+                          width="120"
+                          height="{{ 120 | divided_by: colorway_image.aspect_ratio | default: 150 }}"
+                          loading="lazy"
+                        >
+                      </button>
+                    {%- endif -%}
+                  {%- endfor -%}
+                </div>
+              {%- endif -%}
+              </div>
             {%- endif -%}
           {%- endfor -%}
         </div>
@@ -136,10 +181,19 @@
           "default": "tee"
         },
         { "type": "text", "id": "label", "label": "Name", "info": "Must match the canvas name in the Designer page's section so clicking this card opens the right garment.", "default": "Classic Tee" },
-        { "type": "image_picker", "id": "image", "label": "Photo", "info": "Plain, front-facing photo (flat lay works best) — the design animation plays on top of it." },
-        { "type": "image_picker", "id": "image_2", "label": "Colorway photo 2 (optional)", "info": "The card flashes between all provided colorway photos." },
-        { "type": "image_picker", "id": "image_3", "label": "Colorway photo 3 (optional)" },
-        { "type": "image_picker", "id": "image_4", "label": "Colorway photo 4 (optional)" }
+        {
+          "type": "header",
+          "content": "Colorways",
+          "info": "Add a photo per colorway. Cards with more than one show swatches and flash between them; picking a swatch carries that colorway into the designer. Names should match the colorway names on the matching Designer canvas."
+        },
+        { "type": "text", "id": "color_1_name", "label": "Colorway 1 name", "default": "Standard" },
+        { "type": "image_picker", "id": "image", "label": "Colorway 1 photo", "info": "Plain, front-facing photo (flat lay works best) — the design animation plays on top of it." },
+        { "type": "text", "id": "color_2_name", "label": "Colorway 2 name" },
+        { "type": "image_picker", "id": "image_2", "label": "Colorway 2 photo" },
+        { "type": "text", "id": "color_3_name", "label": "Colorway 3 name" },
+        { "type": "image_picker", "id": "image_3", "label": "Colorway 3 photo" },
+        { "type": "text", "id": "color_4_name", "label": "Colorway 4 name" },
+        { "type": "image_picker", "id": "image_4", "label": "Colorway 4 photo" }
       ]
     },
     {

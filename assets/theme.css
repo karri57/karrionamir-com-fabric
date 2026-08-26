@@ -1655,6 +1655,37 @@ p {
   gap: 0.5rem;
 }
 
+.picker-card__link {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.picker-card__swatches {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.picker-card__swatch {
+  width: 2.25rem;
+  height: 2.75rem;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--color-surface);
+}
+
+.picker-card__swatch[aria-current='true'] {
+  border-color: var(--color-fg);
+}
+
+.picker-card__swatch img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .picker-card__media {
   max-width: none;
 }

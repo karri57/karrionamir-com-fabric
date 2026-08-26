@@ -71,6 +71,7 @@ class KaCustomizer extends HTMLElement {
 
     const params = new URLSearchParams(window.location.search);
     const requestedCanvas = params.get('canvas') || params.get('garment');
+    this.requestedColorway = params.get('colorway');
     if (this.photoMode && requestedCanvas) {
       const index = this.config.canvases.findIndex((c) => c.key === requestedCanvas);
       if (index >= 0) this.state.canvasIndex = index;
@@ -260,6 +261,15 @@ class KaCustomizer extends HTMLElement {
     this.state.canvasIndex = index;
     this.state.colorwayIndex = 0;
     this.state.selected = null;
+
+    // Honor a colorway carried over from the picker page, once.
+    if (this.requestedColorway) {
+      const wanted = this.config.canvases[index].colorways.findIndex(
+        (c) => (c.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') === this.requestedColorway
+      );
+      if (wanted >= 0) this.state.colorwayIndex = wanted;
+      this.requestedColorway = null;
+    }
     const firstAvailable = this.currentCanvas.variants.findIndex((v) => v.available);
     this.state.sizeIndex = firstAvailable >= 0 ? firstAvailable : 0;
     if (this.tools) this.tools.hidden = true;
