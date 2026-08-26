@@ -33,6 +33,26 @@
     },
     "customizer-promo": {
       "type": "customizer-promo",
+      "blocks": {
+        "design_KhYwqD": {
+          "type": "design",
+          "settings": {
+            "label": "Logo",
+            "image": "shopify://shop_images/IMG_0093.png"
+          }
+        },
+        "design_GVGBpb": {
+          "type": "design",
+          "settings": {
+            "label": "Logo",
+            "image": "shopify://shop_images/A3F94908-7F21-4DBE-9654-6A074F15E686.png"
+          }
+        }
+      },
+      "block_order": [
+        "design_KhYwqD",
+        "design_GVGBpb"
+      ],
       "settings": {
         "eyebrow": "KA Studio",
         "heading_solid": "Design it",
