@@ -10,14 +10,16 @@ function formatMoney(cents) {
   });
 }
 
-async function addToCart(body) {
+async function addToCart({ id, quantity }) {
+  // /cart/add.js with a JSON content type requires the {items: [...]} shape;
+  // a flat {id, quantity} JSON body is rejected.
   const response = await fetch('/cart/add.js', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-    body: JSON.stringify(body),
+    body: JSON.stringify({ items: [{ id: Number(id), quantity: Number(quantity) || 1 }] }),
   });
   const data = await response.json();
-  if (data.status) throw new Error(data.description || data.message);
+  if (!response.ok || data.status) throw new Error(data.description || data.message);
 
   const cartResponse = await fetch('/cart.js');
   const cart = await cartResponse.json();
@@ -81,7 +83,17 @@ class CartDrawer extends HTMLElement {
       const form = event.target.closest('form[data-cart-update]');
       if (!form) return;
       event.preventDefault();
-      this.updateLine(new FormData(form).get('id'), new FormData(form).get('quantity'));
+      const formData = new FormData(form);
+      this.updateLine(formData.get('id'), formData.get('quantity'));
+    });
+
+    // The +/- steppers fire change, not submit (the line forms have no
+    // submit button), so quantity edits flow through here.
+    this.addEventListener('change', (event) => {
+      const form = event.target.closest('form[data-cart-update]');
+      if (!form) return;
+      const formData = new FormData(form);
+      this.updateLine(formData.get('id'), formData.get('quantity'));
     });
 
     this.addEventListener('click', (event) => {
@@ -109,6 +121,7 @@ class CartDrawer extends HTMLElement {
       body: JSON.stringify({ id, quantity: Number(quantity) }),
     });
     const cart = await response.json();
+    if (!response.ok || cart.status) return;
     document.dispatchEvent(new CustomEvent('cart:updated', { detail: { cart } }));
   }
 
@@ -204,7 +217,8 @@ class ProductForm extends HTMLElement {
     this.showError('');
 
     try {
-      await addToCart(Object.fromEntries(new FormData(this.form)));
+      const formData = new FormData(this.form);
+      await addToCart({ id: formData.get('id'), quantity: formData.get('quantity') });
       document.querySelector('cart-drawer')?.open();
     } catch (error) {
       this.showError(error.message || window.themeStrings.genericError);

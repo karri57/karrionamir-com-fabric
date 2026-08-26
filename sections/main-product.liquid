@@ -254,13 +254,17 @@
 </div>
 
 <script>
-  window.themeRecentlyViewed?.record({
-    id: {{ product.id | json }},
-    title: {{ product.title | json }},
-    url: {{ product.url | json }},
-    image: {{ product.featured_image | image_url: width: 600 | json }},
-    price: {{ current_variant.price | json }},
-    compareAtPrice: {{ current_variant.compare_at_price | json }}
+  // theme.js is a module (deferred), so themeRecentlyViewed doesn't exist yet
+  // while this inline script parses; modules run before DOMContentLoaded.
+  document.addEventListener('DOMContentLoaded', function () {
+    window.themeRecentlyViewed?.record({
+      id: {{ product.id | json }},
+      title: {{ product.title | json }},
+      url: {{ product.url | json }},
+      image: {{ product.featured_image | image_url: width: 600 | json }},
+      price: {{ current_variant.price | json }},
+      compareAtPrice: {{ current_variant.compare_at_price | json }}
+    });
   });
 </script>
 

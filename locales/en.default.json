@@ -27,7 +27,9 @@
       "note": "Order note",
       "note_placeholder": "Add a note to your order",
       "view": "View cart",
+      "update": "Update cart",
       "updating": "Updating cart…",
+      "error": "Something went wrong. Please try again.",
       "shipping_note": "Taxes and shipping calculated at checkout"
     },
     "accessibility": {
