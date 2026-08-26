@@ -96,7 +96,14 @@
     "title": "Sign up for our newsletter",
     "email_placeholder": "Email",
     "submit": "Subscribe",
-    "success": "Thanks for subscribing"
+    "success": "Thanks for subscribing",
+    "popup_heading": "Get {{ percent }}% off your first order",
+    "popup_submit": "Send discount",
+    "popup_consent_intro": "I have read and accept {{ shop }}'s",
+    "popup_terms": "Terms and Conditions",
+    "popup_and": "and understand the information about the use of my personal data as explained in the",
+    "popup_privacy": "Privacy Policy",
+    "popup_fine_print": "*This is only applicable if you have never signed up or used this welcome discount before."
   },
   "404": {
     "title": "Page not found",

@@ -10,7 +10,7 @@
   endfor
 
   if section.settings.show_newsletter_incentive
-    assign discount_multiplier = 100 | minus: section.settings.newsletter_discount_percent | divided_by: 100.0
+    assign discount_multiplier = 100 | minus: settings.newsletter_discount_percent | divided_by: 100.0
     assign discounted_price = current_variant.price | times: discount_multiplier | round
     assign discounted_price_formatted = discounted_price | money
   endif
@@ -74,7 +74,7 @@
   </product-gallery>
 
   <dialog class="product__zoom-dialog" data-gallery-zoom-dialog>
-    <button type="button" class="product__zoom-close" data-gallery-zoom-close aria-label="{{ 'general.accessibility.close' | t }}">
+    <button type="button" class="product__zoom-close" data-dialog-close aria-label="{{ 'general.accessibility.close' | t }}">
       {% render 'icon', name: 'close' %}
     </button>
     <img data-gallery-zoom-image alt="{{ product.featured_media.alt | escape }}" width="1200" height="1500">
@@ -93,7 +93,9 @@
     {%- if section.settings.show_newsletter_incentive and discounted_price < current_variant.price -%}
       <p class="product__newsletter-incentive">
         {{ 'products.product.newsletter_incentive' | t: price: discounted_price_formatted }}
-        <a href="#newsletter" class="link-underline">{{ 'products.product.newsletter_incentive_link' | t }}</a>
+        <button type="button" class="link-underline" data-dialog-open="newsletter-modal">
+          {{ 'products.product.newsletter_incentive_link' | t }}
+        </button>
       </p>
     {%- endif -%}
 
@@ -199,21 +201,38 @@
     {%- endif -%}
 
     <div class="product__accordions">
+      {%- assign product_type_down = product.type | downcase | strip -%}
       {%- for block in section.blocks -%}
         {%- if block.type == 'accordion_item' -%}
-          <details class="accordion-item" {{ block.shopify_attributes }}>
-            <summary class="accordion-item__summary">
-              {{ block.settings.title }}
-              <span class="accordion-item__icon">{% render 'icon', name: 'plus' %}</span>
-            </summary>
-            <div class="accordion-item__content rich-text">
-              {%- if block.settings.use_description -%}
-                {{ product.description }}
-              {%- else -%}
-                {{ block.settings.content }}
-              {%- endif -%}
-            </div>
-          </details>
+          {%- liquid
+            assign show_block = true
+            if block.settings.limit_product_types != blank
+              assign show_block = false
+              assign allowed_types = block.settings.limit_product_types | split: ','
+              for allowed_type in allowed_types
+                assign allowed_type_down = allowed_type | strip | downcase
+                if allowed_type_down == product_type_down
+                  assign show_block = true
+                  break
+                endif
+              endfor
+            endif
+          -%}
+          {%- if show_block -%}
+            <details class="accordion-item" {{ block.shopify_attributes }}>
+              <summary class="accordion-item__summary">
+                {{ block.settings.title }}
+                <span class="accordion-item__icon">{% render 'icon', name: 'plus' %}</span>
+              </summary>
+              <div class="accordion-item__content rich-text">
+                {%- if block.settings.use_description -%}
+                  {{ product.description }}
+                {%- else -%}
+                  {{ block.settings.content }}
+                {%- endif -%}
+              </div>
+            </details>
+          {%- endif -%}
         {%- endif -%}
       {%- endfor -%}
     </div>
@@ -256,24 +275,11 @@
       "info": "Optional sizing/fit line shown under the add to cart button, e.g. \"Models are wearing size M\"."
     },
     {
-      "type": "header",
-      "content": "Newsletter discount line"
-    },
-    {
       "type": "checkbox",
       "id": "show_newsletter_incentive",
       "label": "Show newsletter discount line",
+      "info": "Discount percent is set in Theme settings → Newsletter.",
       "default": true
-    },
-    {
-      "type": "range",
-      "id": "newsletter_discount_percent",
-      "label": "Discount percent",
-      "min": 0,
-      "max": 50,
-      "step": 1,
-      "default": 10,
-      "visible_if": "{{ section.settings.show_newsletter_incentive }}"
     }
   ],
   "blocks": [
@@ -283,7 +289,13 @@
       "settings": [
         { "type": "text", "id": "title", "label": "Title", "default": "Details" },
         { "type": "checkbox", "id": "use_description", "label": "Use product description", "default": false },
-        { "type": "richtext", "id": "content", "label": "Content", "visible_if": "{{ block.settings.use_description == false }}" }
+        { "type": "richtext", "id": "content", "label": "Content", "visible_if": "{{ block.settings.use_description == false }}" },
+        {
+          "type": "text",
+          "id": "limit_product_types",
+          "label": "Limit to product types",
+          "info": "Comma-separated list of product types this block should show for, e.g. \"Hoodies, Tees, Pants\". Leave blank to show on every product."
+        }
       ]
     }
   ],

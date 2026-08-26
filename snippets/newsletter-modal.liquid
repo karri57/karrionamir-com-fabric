@@ -1,0 +1,65 @@
+{%- doc -%}
+  Sitewide newsletter signup popup. Uses Shopify's native customer form,
+  so a successful submission creates a real Customer record in the
+  Shopify admin (marked as accepting marketing) - no app required.
+  Rendered once in layout/theme.liquid; open it from anywhere with
+  a `data-dialog-open="newsletter-modal"` button.
+  @example
+  {% render 'newsletter-modal' %}
+{%- enddoc -%}
+
+<dialog id="newsletter-modal" class="newsletter-modal">
+  <button type="button" class="newsletter-modal__close" data-dialog-close aria-label="{{ 'general.accessibility.close' | t }}">
+    {% render 'icon', name: 'close' %}
+  </button>
+
+  {%- form 'customer', id: 'NewsletterPopupForm', class: 'newsletter-modal__form' -%}
+    <input type="hidden" name="contact[tags]" value="newsletter,popup-signup">
+
+    {%- if form.posted_successfully? -%}
+      <p class="newsletter-modal__success">{{ 'newsletter.success' | t }}</p>
+    {%- else -%}
+      <h2 class="newsletter-modal__heading">
+        {{ 'newsletter.popup_heading' | t: percent: settings.newsletter_discount_percent }}
+      </h2>
+
+      {%- if form.errors -%}
+        <ul class="form-error">
+          {%- for field in form.errors -%}
+            <li>{{ form.errors.messages[field] }}</li>
+          {%- endfor -%}
+        </ul>
+      {%- endif -%}
+
+      <div class="field">
+        <label class="visually-hidden" for="NewsletterPopupEmail">{{ 'newsletter.email_placeholder' | t }}</label>
+        <input
+          type="email"
+          id="NewsletterPopupEmail"
+          name="contact[email]"
+          class="field__input"
+          placeholder="{{ 'newsletter.email_placeholder' | t }}"
+          required
+        >
+      </div>
+
+      <button type="submit" class="button button--full">{{ 'newsletter.popup_submit' | t }}</button>
+
+      <label class="newsletter-modal__consent">
+        <input type="checkbox" name="contact[accepts_marketing]" value="true" required>
+        <span>
+          {{ 'newsletter.popup_consent_intro' | t: shop: shop.name }}
+          {%- if shop.terms_of_service -%}
+            <a href="{{ shop.terms_of_service.url }}" target="_blank" rel="noopener">{{ 'newsletter.popup_terms' | t }}</a>
+          {%- endif -%}
+          {%- if shop.privacy_policy -%}
+            {{ 'newsletter.popup_and' | t }}
+            <a href="{{ shop.privacy_policy.url }}" target="_blank" rel="noopener">{{ 'newsletter.popup_privacy' | t }}</a>
+          {%- endif -%}.
+        </span>
+      </label>
+
+      <p class="newsletter-modal__fine-print">{{ 'newsletter.popup_fine_print' | t }}</p>
+    {%- endif -%}
+  {%- endform -%}
+</dialog>

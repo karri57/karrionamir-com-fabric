@@ -382,12 +382,22 @@ class ProductGallery extends HTMLElement {
 }
 customElements.define('product-gallery', ProductGallery);
 
+/* -------------------------------------------------------------------------
+ * Generic <dialog> open/close: [data-dialog-open="id"] opens #id,
+ * [data-dialog-close] closes its nearest dialog, clicking the backdrop
+ * (the dialog element itself, outside its content) closes it too.
+ * ---------------------------------------------------------------------- */
 document.addEventListener('click', (event) => {
-  if (event.target.closest('[data-gallery-zoom-close]')) {
+  const opener = event.target.closest('[data-dialog-open]');
+  if (opener) {
+    document.getElementById(opener.dataset.dialogOpen)?.showModal();
+    return;
+  }
+  if (event.target.closest('[data-dialog-close]')) {
     event.target.closest('dialog')?.close();
     return;
   }
-  if (event.target.matches('[data-gallery-zoom-dialog]')) {
+  if (event.target.tagName === 'DIALOG') {
     event.target.close();
   }
 });

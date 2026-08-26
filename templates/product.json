@@ -2,7 +2,36 @@
   "sections": {
     "main": {
       "type": "main-product",
-      "settings": {}
+      "settings": {
+        "show_newsletter_incentive": true
+      },
+      "blocks": {
+        "product_details": {
+          "type": "accordion_item",
+          "settings": {
+            "title": "Product details",
+            "use_description": true
+          }
+        },
+        "size_chart": {
+          "type": "accordion_item",
+          "settings": {
+            "title": "Size chart",
+            "use_description": false,
+            "content": "",
+            "limit_product_types": ""
+          }
+        },
+        "shipping_details": {
+          "type": "accordion_item",
+          "settings": {
+            "title": "Shipping details",
+            "use_description": false,
+            "content": ""
+          }
+        }
+      },
+      "block_order": ["product_details", "size_chart", "shipping_details"]
     },
     "recommendations": {
       "type": "product-recommendations",

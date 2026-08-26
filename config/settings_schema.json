@@ -141,6 +141,21 @@
     ]
   },
   {
+    "name": "Newsletter",
+    "settings": [
+      {
+        "type": "range",
+        "id": "newsletter_discount_percent",
+        "label": "Welcome discount percent",
+        "info": "Shown in the product page's \"join our newsletter\" line and signup popup. Signing up creates a real customer in Shopify, marked as subscribed to marketing — you still need to create the matching discount code in Shopify admin (Discounts) and, if you want it emailed automatically, a Shopify Email/Flow welcome automation.",
+        "min": 0,
+        "max": 50,
+        "step": 1,
+        "default": 10
+      }
+    ]
+  },
+  {
     "name": "Social media",
     "settings": [
       {
