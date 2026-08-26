@@ -1,5 +1,6 @@
 {%- liquid
   assign collection = collections[section.settings.collection]
+  assign product_types = collection.products | map: 'type' | uniq
 -%}
 
 <section class="section page-width">
@@ -7,15 +8,25 @@
     {%- if section.settings.heading != blank -%}
       <h2 class="section__heading">{{ section.settings.heading }}</h2>
     {%- endif -%}
-    {%- if collection -%}
-      <a href="{{ collection.url }}" class="section__link">View all</a>
-    {%- endif -%}
   </div>
+
+  {%- if section.settings.show_filters and product_types.size > 0 -%}
+    <filter-tabs class="filter-tabs" role="tablist" aria-label="{{ 'collections.general.filter_by' | t }}">
+      <button type="button" class="filter-tab" data-filter="all" aria-current="true">{{ 'collections.general.view_all' | t }}</button>
+      {%- for type in product_types -%}
+        {%- unless type == blank -%}
+          <button type="button" class="filter-tab" data-filter="{{ type | handleize }}" aria-current="false">{{ type }}</button>
+        {%- endunless -%}
+      {%- endfor -%}
+    </filter-tabs>
+  {%- endif -%}
 
   {%- if collection.products.size > 0 -%}
     <div class="product-grid" style="--grid-columns: {{ section.settings.columns }};">
       {%- for product in collection.products limit: section.settings.products_to_show -%}
-        {%- render 'product-card', product: product -%}
+        <div class="product-grid__item" data-product-type="{{ product.type | handleize }}">
+          {%- render 'product-card', product: product, show_new_badge: section.settings.show_new_badge -%}
+        </div>
       {%- endfor -%}
     </div>
   {%- else -%}
@@ -29,8 +40,10 @@
   "settings": [
     { "type": "text", "id": "heading", "label": "Heading", "default": "New arrivals" },
     { "type": "collection", "id": "collection", "label": "Collection" },
-    { "type": "range", "id": "products_to_show", "label": "Products to show", "min": 2, "max": 24, "step": 1, "default": 8 },
-    { "type": "range", "id": "columns", "label": "Columns on desktop", "min": 2, "max": 5, "step": 1, "default": 4 }
+    { "type": "range", "id": "products_to_show", "label": "Products to show", "min": 2, "max": 24, "step": 1, "default": 12 },
+    { "type": "range", "id": "columns", "label": "Columns on desktop", "min": 2, "max": 5, "step": 1, "default": 4 },
+    { "type": "checkbox", "id": "show_filters", "label": "Show category filter tabs", "default": true },
+    { "type": "checkbox", "id": "show_new_badge", "label": "Show \"New in\" badge on cards", "default": true }
   ],
   "presets": [
     { "name": "Featured collection" }

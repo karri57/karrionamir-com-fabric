@@ -38,6 +38,8 @@
   "products": {
     "product": {
       "add_to_cart": "Add to cart",
+      "new_in": "New in",
+      "sale": "Sale",
       "sold_out": "Sold out",
       "unavailable": "Unavailable",
       "quantity": "Quantity",
@@ -53,6 +55,7 @@
       "no_products": "No products found",
       "sort_by": "Sort by",
       "filter_by": "Filter",
+      "view_all": "View All",
       "clear_all": "Clear all",
       "items_count": {
         "one": "{{ count }} product",

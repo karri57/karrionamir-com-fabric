@@ -10,6 +10,21 @@ function formatMoney(cents) {
   });
 }
 
+async function addToCart(body) {
+  const response = await fetch('/cart/add.js', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const data = await response.json();
+  if (data.status) throw new Error(data.description || data.message);
+
+  const cartResponse = await fetch('/cart.js');
+  const cart = await cartResponse.json();
+  document.dispatchEvent(new CustomEvent('cart:updated', { detail: { cart } }));
+  return cart;
+}
+
 /* -------------------------------------------------------------------------
  * Mobile menu
  * ---------------------------------------------------------------------- */
@@ -186,27 +201,13 @@ class ProductForm extends HTMLElement {
   async onSubmit(event) {
     event.preventDefault();
     this.submitButton?.setAttribute('aria-disabled', 'true');
-    const formData = new FormData(this.form);
+    this.showError('');
 
     try {
-      const response = await fetch('/cart/add.js', {
-        method: 'POST',
-        headers: { Accept: 'application/json' },
-        body: formData,
-      });
-      const data = await response.json();
-
-      if (data.status) {
-        this.showError(data.description || data.message);
-        return;
-      }
-
-      const cartResponse = await fetch('/cart.js');
-      const cart = await cartResponse.json();
-      document.dispatchEvent(new CustomEvent('cart:updated', { detail: { cart } }));
+      await addToCart(Object.fromEntries(new FormData(this.form)));
       document.querySelector('cart-drawer')?.open();
     } catch (error) {
-      this.showError(window.themeStrings.genericError);
+      this.showError(error.message || window.themeStrings.genericError);
     } finally {
       this.submitButton?.removeAttribute('aria-disabled');
     }
@@ -282,6 +283,48 @@ class VariantPicker extends HTMLElement {
   }
 }
 customElements.define('variant-picker', VariantPicker);
+
+/* -------------------------------------------------------------------------
+ * Quick add: "+" button on a product card adds its default variant directly
+ * ---------------------------------------------------------------------- */
+document.addEventListener('click', async (event) => {
+  const button = event.target.closest('[data-quick-add]');
+  if (!button || button.hasAttribute('aria-disabled')) return;
+
+  button.setAttribute('aria-disabled', 'true');
+  try {
+    await addToCart({ id: button.dataset.variantId, quantity: 1 });
+    document.querySelector('cart-drawer')?.open();
+  } catch (error) {
+    // Swallow: the item is likely out of stock by the time this ran.
+  } finally {
+    button.removeAttribute('aria-disabled');
+  }
+});
+
+/* -------------------------------------------------------------------------
+ * Filter tabs: client-side filter of a product grid by product type
+ * ---------------------------------------------------------------------- */
+class FilterTabs extends HTMLElement {
+  connectedCallback() {
+    this.grid = this.nextElementSibling;
+    this.addEventListener('click', (event) => {
+      const tab = event.target.closest('.filter-tab');
+      if (!tab) return;
+      this.querySelectorAll('.filter-tab').forEach((el) => el.setAttribute('aria-current', 'false'));
+      tab.setAttribute('aria-current', 'true');
+      this.filter(tab.dataset.filter);
+    });
+  }
+
+  filter(type) {
+    if (!this.grid) return;
+    this.grid.querySelectorAll('[data-product-type]').forEach((item) => {
+      item.hidden = type !== 'all' && item.dataset.productType !== type;
+    });
+  }
+}
+customElements.define('filter-tabs', FilterTabs);
 
 /* -------------------------------------------------------------------------
  * Product gallery: click a thumbnail to swap the main image

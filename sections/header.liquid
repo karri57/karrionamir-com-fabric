@@ -1,8 +1,13 @@
 <header class="header{% unless section.settings.sticky %} header--static{% endunless %}">
   <div class="page-width header__row">
-    <button type="button" class="header__menu-toggle" aria-controls="mobile-menu" aria-expanded="false" aria-label="{{ 'general.menu.open' | t }}">
-      {% render 'icon', name: 'menu' %}
-    </button>
+    <div class="header__side header__side--start">
+      <button type="button" class="header__menu-toggle" aria-controls="mobile-menu" aria-expanded="false" aria-label="{{ 'general.menu.open' | t }}">
+        {% render 'icon', name: 'menu' %}
+      </button>
+      <a href="{{ routes.search_url }}" class="header__icon-button header__icon-button--search" aria-label="{{ 'general.search.submit' | t }}">
+        {% render 'icon', name: 'search' %}
+      </a>
+    </div>
 
     <a href="{{ routes.root_url }}" class="header__logo">
       {%- if settings.logo != blank -%}
@@ -18,19 +23,7 @@
       {%- endif -%}
     </a>
 
-    <nav class="header__nav" aria-label="Primary">
-      {%- for link in section.settings.menu.links -%}
-        <a href="{{ link.url }}" class="header__nav-link"{% if link.active %} aria-current="page"{% endif %}>{{ link.title }}</a>
-      {%- endfor -%}
-    </nav>
-
-    <div class="header__actions">
-      <a href="{{ routes.search_url }}" class="header__icon-button" aria-label="{{ 'general.search.submit' | t }}">
-        {% render 'icon', name: 'search' %}
-      </a>
-      <a href="{{ routes.account_url }}" class="header__icon-button" aria-label="{{ 'customer.account.title' | t }}">
-        {% render 'icon', name: 'account' %}
-      </a>
+    <div class="header__side header__side--end">
       <a href="{{ routes.cart_url }}" class="header__icon-button" aria-label="{{ 'general.cart.open' | t }}" data-cart-open>
         {% render 'icon', name: 'cart' %}
         <span class="header__cart-count" data-cart-count{% if cart.item_count == 0 %} hidden{% endif %}>{{ cart.item_count }}</span>
@@ -48,6 +41,7 @@
       {%- for link in section.settings.menu.links -%}
         <a href="{{ link.url }}" class="mobile-menu__link">{{ link.title }}</a>
       {%- endfor -%}
+      <a href="{{ routes.account_url }}" class="mobile-menu__link">{{ 'customer.account.title' | t }}</a>
     </nav>
   </mobile-menu>
 </header>

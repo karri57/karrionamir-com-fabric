@@ -14,8 +14,10 @@
       "settings": {
         "heading": "New Arrivals",
         "collection": "all",
-        "products_to_show": 8,
-        "columns": 4
+        "products_to_show": 12,
+        "columns": 4,
+        "show_filters": true,
+        "show_new_badge": true
       }
     }
   },

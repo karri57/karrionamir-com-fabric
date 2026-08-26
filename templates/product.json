@@ -10,7 +10,9 @@
         "heading": "You may also like",
         "collection": "all",
         "products_to_show": 4,
-        "columns": 4
+        "columns": 4,
+        "show_filters": false,
+        "show_new_badge": false
       }
     }
   },

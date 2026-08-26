@@ -1,8 +1,10 @@
 {%- doc -%}
-  A single product grid card: image (+hover secondary image), badges, title, price.
+  A single product grid card: image (+hover secondary image), badges, quick add,
+  title, price, color swatch dots.
   @param {object} product
+  @param {boolean} [show_new_badge] - show a "New in" badge (default false)
   @example
-  {% render 'product-card', product: product %}
+  {% render 'product-card', product: product, show_new_badge: true %}
 {%- enddoc -%}
 
 {%- liquid
@@ -12,11 +14,13 @@
   if product.compare_at_price_max > product.price_min
     assign on_sale = true
   endif
+  assign quick_add_variant = product.selected_or_first_available_variant
+  assign color_option = product.options_with_values | where: 'name', 'Color' | first
 -%}
 
 <div class="product-card">
-  <a href="{{ product.url }}" class="product-card__link">
-    <div class="product-card__media">
+  <div class="product-card__media">
+    <a href="{{ product.url }}" class="product-card__media-link">
       {%- if featured_image -%}
         <img
           src="{{ featured_image | image_url: width: 600 }}"
@@ -35,13 +39,32 @@
           loading="lazy"
         >
       {%- endif -%}
+    </a>
 
-      {%- if product.available == false -%}
-        <span class="product-card__badge">{{ 'products.product.sold_out' | t }}</span>
-      {%- elsif on_sale -%}
-        <span class="product-card__badge product-card__badge--sale">Sale</span>
-      {%- endif -%}
-    </div>
+    {%- if show_new_badge -%}
+      <span class="product-card__badge product-card__badge--new">{{ 'products.product.new_in' | t }}</span>
+    {%- endif -%}
+
+    {%- if product.available == false -%}
+      <span class="product-card__badge product-card__badge--end">{{ 'products.product.sold_out' | t }}</span>
+    {%- elsif on_sale -%}
+      <span class="product-card__badge product-card__badge--end product-card__badge--sale">{{ 'products.product.sale' | t }}</span>
+    {%- endif -%}
+
+    {%- if product.available -%}
+      <button
+        type="button"
+        class="product-card__quick-add"
+        data-quick-add
+        data-variant-id="{{ quick_add_variant.id }}"
+        aria-label="{{ 'products.product.add_to_cart' | t }}: {{ product.title | escape }}"
+      >
+        {% render 'icon', name: 'plus' %}
+      </button>
+    {%- endif -%}
+  </div>
+
+  <a href="{{ product.url }}" class="product-card__link">
     <div class="product-card__title">{{ product.title }}</div>
     <div class="product-card__price">
       {%- if product.price_varies -%}
@@ -51,4 +74,12 @@
       {%- endif -%}
     </div>
   </a>
+
+  {%- if color_option -%}
+    <div class="swatch-dots">
+      {%- for value in color_option.values -%}
+        <span class="swatch-dot" style="background: {% render 'swatch-color', value: value %};" title="{{ value | escape }}"></span>
+      {%- endfor -%}
+    </div>
+  {%- endif -%}
 </div>

@@ -1,0 +1,31 @@
+{%- doc -%}
+  Best-effort mapping from a color option value (e.g. "Heather Grey") to a CSS color,
+  for rendering a small swatch dot without requiring a metafield/swatch app.
+  @param {string} value
+  @example
+  <span style="background: {% render 'swatch-color', value: value %};"></span>
+{%- enddoc -%}
+
+{%- liquid
+  assign v = value | downcase
+  case true
+    when v contains 'heather grey', v contains 'heather gray', v contains 'charcoal'
+      echo '#54524f'
+    when v contains 'grey', v contains 'gray'
+      echo 'gray'
+    when v contains 'camel', v contains 'tan', v contains 'khaki'
+      echo '#c19a6b'
+    when v contains 'stone', v contains 'sand'
+      echo '#c2b280'
+    when v contains 'burgundy', v contains 'wine'
+      echo 'maroon'
+    when v contains 'rust'
+      echo '#b7410e'
+    when v contains 'off white', v contains 'off-white', v contains 'ivory', v contains 'bone'
+      echo '#f5f0e6'
+    when v contains 'multi'
+      echo 'linear-gradient(45deg, red, orange, yellow, green, blue, purple)'
+    else
+      echo v
+  endcase
+-%}

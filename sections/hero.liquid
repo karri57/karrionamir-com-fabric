@@ -21,7 +21,7 @@
       <p class="hero__text">{{ section.settings.text }}</p>
     {%- endif -%}
     {%- if section.settings.button_label != blank -%}
-      <a href="{{ section.settings.button_link | default: '#' }}" class="button">{{ section.settings.button_label }}</a>
+      <a href="{{ section.settings.button_link | default: '#' }}" class="button{% if section.settings.button_style == 'outline' %} button--outline{% endif %}">{{ section.settings.button_label }}</a>
     {%- endif -%}
   </div>
 </section>
@@ -34,7 +34,17 @@
     { "type": "text", "id": "heading", "label": "Heading", "default": "New this season" },
     { "type": "textarea", "id": "text", "label": "Text" },
     { "type": "text", "id": "button_label", "label": "Button label", "default": "Shop now" },
-    { "type": "url", "id": "button_link", "label": "Button link" }
+    { "type": "url", "id": "button_link", "label": "Button link" },
+    {
+      "type": "select",
+      "id": "button_style",
+      "label": "Button style",
+      "options": [
+        { "value": "filled", "label": "Filled" },
+        { "value": "outline", "label": "Outline" }
+      ],
+      "default": "outline"
+    }
   ],
   "presets": [
     { "name": "Hero" }
