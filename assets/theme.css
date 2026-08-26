@@ -1033,9 +1033,31 @@ p {
 }
 
 .newsletter-modal__success {
-  font-size: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
   text-align: center;
-  padding-block: 1rem;
+  padding-block: 1.5rem;
+}
+
+.newsletter-modal__success .newsletter-modal__heading {
+  padding-right: 0;
+}
+
+.newsletter-modal__success-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 999px;
+  background: var(--color-surface);
+}
+
+.newsletter-modal__success-icon svg {
+  width: 1.3rem;
+  height: 1.3rem;
 }
 
 .quantity-selector {

@@ -103,7 +103,9 @@
     "popup_terms": "Terms and Conditions",
     "popup_and": "and understand the information about the use of my personal data as explained in the",
     "popup_privacy": "Privacy Policy",
-    "popup_fine_print": "*This is only applicable if you have never signed up or used this welcome discount before."
+    "popup_fine_print": "*This is only applicable if you have never signed up or used this welcome discount before.",
+    "popup_success_heading": "Thanks for joining!",
+    "popup_success_body": "Your welcome discount is on its way to your inbox."
   },
   "404": {
     "title": "Page not found",

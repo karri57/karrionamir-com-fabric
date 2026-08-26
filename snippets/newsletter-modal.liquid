@@ -17,7 +17,14 @@
     <input type="hidden" name="contact[tags]" value="newsletter,popup-signup">
 
     {%- if form.posted_successfully? -%}
-      <p class="newsletter-modal__success">{{ 'newsletter.success' | t }}</p>
+      <div class="newsletter-modal__success">
+        <span class="newsletter-modal__success-icon">{% render 'icon', name: 'checkmark' %}</span>
+        <h2 class="newsletter-modal__heading">{{ 'newsletter.popup_success_heading' | t }}</h2>
+        <p>{{ 'newsletter.popup_success_body' | t }}</p>
+      </div>
+      <script>
+        document.getElementById('newsletter-modal')?.showModal();
+      </script>
     {%- else -%}
       <h2 class="newsletter-modal__heading">
         {{ 'newsletter.popup_heading' | t: percent: settings.newsletter_discount_percent }}
