@@ -26,6 +26,6 @@
     when v contains 'multi'
       echo 'linear-gradient(45deg, red, orange, yellow, green, blue, purple)'
     else
-      echo v
+      echo v | split: ' ' | last
   endcase
 -%}

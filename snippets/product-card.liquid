@@ -15,7 +15,14 @@
     assign on_sale = true
   endif
   assign quick_add_variant = product.selected_or_first_available_variant
-  assign color_option = product.options_with_values | where: 'name', 'Color' | first
+  assign color_option = nil
+  for option in product.options_with_values
+    assign option_name_down = option.name | downcase
+    if option_name_down contains 'color' or option_name_down contains 'colour'
+      assign color_option = option
+      break
+    endif
+  endfor
 -%}
 
 <div class="product-card">
@@ -78,7 +85,11 @@
   {%- if color_option -%}
     <div class="swatch-dots">
       {%- for value in color_option.values -%}
-        <span class="swatch-dot" style="background: {% render 'swatch-color', value: value %};" title="{{ value | escape }}"></span>
+        <span
+          class="swatch-dot"
+          style="background: var(--color-border); background: {% render 'swatch-color', value: value %};"
+          title="{{ value | escape }}"
+        ></span>
       {%- endfor -%}
     </div>
   {%- endif -%}
