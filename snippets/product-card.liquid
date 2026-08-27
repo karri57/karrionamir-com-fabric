@@ -10,7 +10,7 @@
     reserve for the single card most likely to be the page's LCP element
     (default false)
   @example
-  {% render 'product-card', product: product, show_new_badge: true, priority: forloop.index <= 4, first: forloop.first %}
+  {% render 'product-card', product: product, show_new_badge: true, priority: is_priority, first: forloop.first %}
 {%- enddoc -%}
 
 {%- liquid

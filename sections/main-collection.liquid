@@ -40,8 +40,14 @@
     {%- if collection.products.size > 0 -%}
       <div class="product-grid" style="--grid-columns: {{ section.settings.columns }};">
         {%- for product in collection.products -%}
+          {%- liquid
+            assign is_priority = false
+            if forloop.index <= 4
+              assign is_priority = true
+            endif
+          -%}
           <div class="product-grid__item" data-product-type="{{ product.type | handleize }}">
-            {%- render 'product-card', product: product, priority: forloop.index <= 4, first: forloop.first -%}
+            {%- render 'product-card', product: product, priority: is_priority, first: forloop.first -%}
           </div>
         {%- endfor -%}
       </div>
