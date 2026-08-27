@@ -43,7 +43,8 @@
       "free_shipping_progress_html": "Spend {{ amount }} more and get <strong>free shipping!</strong>",
       "free_shipping_unlocked": "You've unlocked free shipping!",
       "complete_outfit": "Complete your outfit",
-      "add": "Add"
+      "add": "Add",
+      "secure_checkout": "Secure checkout · encrypted payment"
     },
     "accessibility": {
       "skip_to_content": "Skip to content",
@@ -68,7 +69,10 @@
       "image_number": "Show image {{ number }}",
       "tax_note": "Taxes and duties included",
       "newsletter_incentive": "Get it for {{ price }} —",
-      "newsletter_incentive_link": "join our newsletter today!"
+      "newsletter_incentive_link": "join our newsletter today!",
+      "low_stock": "Only {{ count }} left in stock",
+      "free_shipping_note": "Free shipping on orders over {{ amount }}",
+      "secure_checkout": "Secure checkout · encrypted payment"
     }
   },
   "collections": {
@@ -142,7 +146,8 @@
   },
   "sections": {
     "customizer": {
-      "gesture_hint": "Tap a design to place it. Drag to move, pinch to resize, twist to rotate."
+      "gesture_hint": "Tap a design to place it. Drag to move, pinch to resize, twist to rotate.",
+      "trust_note": "🔒 Secure checkout · your design is saved with your order"
     },
     "customizer_promo": {
       "drag_hint": "Drag a design onto the shirt — double-tap a placed design to remove it",

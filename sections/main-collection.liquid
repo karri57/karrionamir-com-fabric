@@ -41,7 +41,7 @@
       <div class="product-grid" style="--grid-columns: {{ section.settings.columns }};">
         {%- for product in collection.products -%}
           <div class="product-grid__item" data-product-type="{{ product.type | handleize }}">
-            {%- render 'product-card', product: product -%}
+            {%- render 'product-card', product: product, priority: forloop.index <= 4, first: forloop.first -%}
           </div>
         {%- endfor -%}
       </div>

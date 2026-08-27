@@ -398,6 +398,18 @@ class VariantPicker extends HTMLElement {
       submitButton.toggleAttribute('aria-disabled', !variant.available);
     }
 
+    const stockBadge = document.querySelector('[data-stock-badge]');
+    if (stockBadge) {
+      const threshold = Number(stockBadge.dataset.threshold || 0);
+      const low = threshold > 0
+        && variant.inventory_management === 'shopify'
+        && variant.inventory_policy === 'deny'
+        && variant.inventory_quantity > 0
+        && variant.inventory_quantity <= threshold;
+      stockBadge.hidden = !low;
+      if (low) stockBadge.textContent = window.themeStrings.lowStock.replace('[count]', variant.inventory_quantity);
+    }
+
     if (variant.featured_media) {
       const mainImage = document.querySelector('[data-gallery-main] img');
       if (mainImage) {

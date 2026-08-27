@@ -14,6 +14,18 @@
     assign discounted_price = current_variant.price | times: discount_multiplier | round
     assign discounted_price_formatted = discounted_price | money
   endif
+
+  assign free_shipping_cents = settings.free_shipping_threshold | times: 100
+  assign free_shipping_formatted = free_shipping_cents | money
+
+  assign show_low_stock = false
+  if section.settings.low_stock_threshold > 0
+    and current_variant.inventory_management == 'shopify'
+    and current_variant.inventory_policy == 'deny'
+    and current_variant.inventory_quantity > 0
+    and current_variant.inventory_quantity <= section.settings.low_stock_threshold
+    assign show_low_stock = true
+  endif
 -%}
 
 <div class="product-page">
@@ -89,6 +101,12 @@
       </div>
       <span class="product__tax-note">{{ 'products.product.tax_note' | t }}</span>
     </div>
+
+    {%- if section.settings.low_stock_threshold > 0 -%}
+      <p class="product__stock-badge" data-stock-badge data-threshold="{{ section.settings.low_stock_threshold }}" {% unless show_low_stock %}hidden{% endunless %}>
+        {{ 'products.product.low_stock' | t: count: current_variant.inventory_quantity }}
+      </p>
+    {%- endif -%}
 
     {%- if section.settings.show_newsletter_incentive and discounted_price < current_variant.price -%}
       <p class="product__newsletter-incentive">
@@ -196,6 +214,19 @@
       </form>
     </product-form>
 
+    <div class="product__trust">
+      {%- if settings.free_shipping_threshold > 0 -%}
+        <p class="product__trust-line">
+          {% render 'icon', name: 'truck' %}
+          {{ 'products.product.free_shipping_note' | t: amount: free_shipping_formatted }}
+        </p>
+      {%- endif -%}
+      <p class="product__trust-line">
+        {% render 'icon', name: 'lock' %}
+        {{ 'products.product.secure_checkout' | t }}
+      </p>
+    </div>
+
     {%- if section.settings.fit_note != blank -%}
       <p class="product__fit-note">{{ section.settings.fit_note }}</p>
     {%- endif -%}
@@ -284,6 +315,16 @@
       "label": "Show newsletter discount line",
       "info": "Discount percent is set in Theme settings → Newsletter.",
       "default": true
+    },
+    {
+      "type": "range",
+      "id": "low_stock_threshold",
+      "label": "Low stock warning threshold",
+      "min": 0,
+      "max": 20,
+      "step": 1,
+      "default": 5,
+      "info": "Shows \"Only X left in stock\" when a variant's real inventory drops to or below this number. Only applies to variants that track inventory and can't be backordered. 0 turns this off."
     }
   ],
   "blocks": [

@@ -25,7 +25,7 @@
     <div class="product-grid" style="--grid-columns: {{ section.settings.columns }};">
       {%- for product in collection.products limit: section.settings.products_to_show -%}
         <div class="product-grid__item" data-product-type="{{ product.type | handleize }}">
-          {%- render 'product-card', product: product, show_new_badge: section.settings.show_new_badge -%}
+          {%- render 'product-card', product: product, show_new_badge: section.settings.show_new_badge, priority: forloop.index <= 4, first: forloop.first -%}
         </div>
       {%- endfor -%}
     </div>

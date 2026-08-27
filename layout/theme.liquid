@@ -21,7 +21,8 @@
         genericError: {{ 'general.cart.error' | t | json }},
         freeShippingProgress: {{ 'general.cart.free_shipping_progress_html' | t: amount: '[amount]' | json }},
         freeShippingUnlocked: {{ 'general.cart.free_shipping_unlocked' | t | json }},
-        addLabel: {{ 'general.cart.add' | t | json }}
+        addLabel: {{ 'general.cart.add' | t | json }},
+        lowStock: {{ 'products.product.low_stock' | t: count: '[count]' | json }}
       };
     </script>
     <script src="{{ 'theme.js' | asset_url }}" type="module"></script>

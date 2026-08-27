@@ -20,6 +20,7 @@
       <div class="cart-shipping-bar" data-shipping-bar data-threshold="{{ threshold_cents }}">
         {%- liquid
           assign remaining = threshold_cents | minus: cart.total_price
+          assign remaining_formatted = remaining | money
           assign progress = cart.total_price | times: 100 | divided_by: threshold_cents
           if progress > 100
             assign progress = 100
@@ -27,7 +28,7 @@
         -%}
         <p class="cart-shipping-bar__text" data-shipping-text>
           {%- if remaining > 0 -%}
-            {{ 'general.cart.free_shipping_progress_html' | t: amount: remaining | money }}
+            {{ 'general.cart.free_shipping_progress_html' | t: amount: remaining_formatted }}
           {%- else -%}
             {{ 'general.cart.free_shipping_unlocked' | t }}
           {%- endif -%}
@@ -105,6 +106,10 @@
           <span data-checkout-total>{{ cart.total_price | money }}</span>
         </button>
       </form>
+      <p class="cart-drawer__trust">
+        {% render 'icon', name: 'lock' %}
+        {{ 'general.cart.secure_checkout' | t }}
+      </p>
     </div>
   </div>
 

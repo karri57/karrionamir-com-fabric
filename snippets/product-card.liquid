@@ -3,8 +3,14 @@
   title, price, color swatch dots.
   @param {object} product
   @param {boolean} [show_new_badge] - show a "New in" badge (default false)
+  @param {boolean} [priority] - eager-load the main image instead of lazy;
+    pass true for the first few above-the-fold cards in a grid so the browser
+    doesn't delay them behind a lazy-load scroll trigger (default false)
+  @param {boolean} [first] - additionally mark the image fetchpriority="high";
+    reserve for the single card most likely to be the page's LCP element
+    (default false)
   @example
-  {% render 'product-card', product: product, show_new_badge: true %}
+  {% render 'product-card', product: product, show_new_badge: true, priority: forloop.index <= 4, first: forloop.first %}
 {%- enddoc -%}
 
 {%- liquid
@@ -34,7 +40,7 @@
           alt="{{ featured_image.alt | default: product.title | escape }}"
           width="600"
           height="{{ 600 | divided_by: featured_image.aspect_ratio | default: 750 }}"
-          loading="lazy"
+          {% if priority %}loading="eager"{% if first %} fetchpriority="high"{% endif %}{% else %}loading="lazy"{% endif %}
         >
       {%- endif -%}
       {%- if second_image -%}
