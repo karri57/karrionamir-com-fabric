@@ -19,11 +19,7 @@
   assign free_shipping_formatted = free_shipping_cents | money
 
   assign show_low_stock = false
-  if section.settings.low_stock_threshold > 0
-    and current_variant.inventory_management == 'shopify'
-    and current_variant.inventory_policy == 'deny'
-    and current_variant.inventory_quantity > 0
-    and current_variant.inventory_quantity <= section.settings.low_stock_threshold
+  if section.settings.low_stock_threshold > 0 and current_variant.inventory_management == 'shopify' and current_variant.inventory_policy == 'deny' and current_variant.inventory_quantity > 0 and current_variant.inventory_quantity <= section.settings.low_stock_threshold
     assign show_low_stock = true
   endif
 -%}
