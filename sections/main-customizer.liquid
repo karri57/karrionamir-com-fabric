@@ -53,6 +53,8 @@
             {%- if block.settings.photo_3_back != blank -%}{%- assign back_3 = block.settings.photo_3_back | image_url: width: 900 -%}{%- endif -%}
             {%- assign back_4 = '' -%}
             {%- if block.settings.photo_4_back != blank -%}{%- assign back_4 = block.settings.photo_4_back | image_url: width: 900 -%}{%- endif -%}
+            {%- assign has_zone = false -%}
+            {%- if block.settings.noprint_w > 0 and block.settings.noprint_h > 0 -%}{%- assign has_zone = true -%}{%- endif -%}
             {
               "key": {{ block.settings.label | handleize | json }},
               "label": {{ block.settings.label | json }},
@@ -97,7 +99,12 @@
                   },
                 {%- endif -%}
                 null
-              ]
+              ],
+              "noGoZone": {%- if has_zone -%}
+                { "x": {{ block.settings.noprint_x }}, "y": {{ block.settings.noprint_y }}, "w": {{ block.settings.noprint_w }}, "h": {{ block.settings.noprint_h }} }
+              {%- else -%}
+                null
+              {%- endif -%}
             },
           {%- endif -%}
         {%- endfor -%}
@@ -218,6 +225,7 @@
               </g>
             </svg>
           {%- endif -%}
+          <div class="kc__restricted" data-kc-restricted hidden></div>
           <div class="kc__placements" data-kc-placements></div>
         </div>
       </div>
@@ -326,7 +334,16 @@
         { "type": "header", "content": "Colorway 4 (optional)" },
         { "type": "text", "id": "color_4_name", "label": "Name" },
         { "type": "image_picker", "id": "photo_4", "label": "Front photo" },
-        { "type": "image_picker", "id": "photo_4_back", "label": "Back photo" }
+        { "type": "image_picker", "id": "photo_4_back", "label": "Back photo" },
+        {
+          "type": "header",
+          "content": "Restricted area (optional)",
+          "info": "Keep designs off part of this garment — a pocket, seam, zipper, or existing print. Shown to shoppers as a soft hatched zone; designs slide away from it automatically. Leave width or height at 0 to turn it off."
+        },
+        { "type": "range", "id": "noprint_x", "label": "Center — horizontal", "min": 0, "max": 100, "step": 1, "unit": "%", "default": 50 },
+        { "type": "range", "id": "noprint_y", "label": "Center — vertical", "min": 0, "max": 100, "step": 1, "unit": "%", "default": 20 },
+        { "type": "range", "id": "noprint_w", "label": "Width", "min": 0, "max": 100, "step": 1, "unit": "%", "default": 0 },
+        { "type": "range", "id": "noprint_h", "label": "Height", "min": 0, "max": 100, "step": 1, "unit": "%", "default": 0 }
       ]
     },
     {

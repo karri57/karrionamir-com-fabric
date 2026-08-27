@@ -1952,6 +1952,19 @@ p {
   inset: 0;
 }
 
+.kc__restricted {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  border: 1px dashed rgb(from var(--color-fg) r g b / 40%);
+  border-radius: 4px;
+  background-image: repeating-linear-gradient(
+    135deg,
+    rgb(from var(--color-fg) r g b / 7%) 0 8px,
+    transparent 8px 16px
+  );
+}
+
 .kc__item {
   position: absolute;
   cursor: grab;

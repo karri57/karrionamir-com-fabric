@@ -68,6 +68,7 @@ class KaCustomizer extends HTMLElement {
     this.placementsEl = this.querySelector('[data-kc-placements]');
     this.tools = this.querySelector('[data-kc-tools]');
     this.photoEl = this.querySelector('[data-kc-photo]');
+    this.zoneEl = this.querySelector('[data-kc-restricted]');
 
     const params = new URLSearchParams(window.location.search);
     const requestedCanvas = params.get('canvas') || params.get('garment');
@@ -233,8 +234,12 @@ class KaCustomizer extends HTMLElement {
 
       if (this.dragBase && event.pointerId === this.dragBase.pointerId) {
         const rect = this.stage.getBoundingClientRect();
-        placement.x = Math.min(95, Math.max(5, this.dragBase.px + ((event.clientX - this.dragBase.x) / rect.width) * 100));
-        placement.y = Math.min(95, Math.max(5, this.dragBase.py + ((event.clientY - this.dragBase.y) / rect.height) * 100));
+        let x = Math.min(95, Math.max(5, this.dragBase.px + ((event.clientX - this.dragBase.x) / rect.width) * 100));
+        let y = Math.min(95, Math.max(5, this.dragBase.py + ((event.clientY - this.dragBase.y) / rect.height) * 100));
+        const zone = this.photoMode ? this.currentCanvas.noGoZone : null;
+        if (zone) [x, y] = this.clampOutsideZone(x, y, zone);
+        placement.x = x;
+        placement.y = y;
         this.renderPlacements();
       }
     });
@@ -288,8 +293,40 @@ class KaCustomizer extends HTMLElement {
     this.updatePhoto();
     this.renderColorways();
     this.renderSizes();
+    this.renderZone();
     this.updateCommerce();
     this.renderPlacements();
+  }
+
+  renderZone() {
+    if (!this.zoneEl) return;
+    const zone = this.photoMode ? this.currentCanvas.noGoZone : null;
+    this.zoneEl.hidden = !zone;
+    if (zone) {
+      this.zoneEl.style.left = `${zone.x}%`;
+      this.zoneEl.style.top = `${zone.y}%`;
+      this.zoneEl.style.width = `${zone.w}%`;
+      this.zoneEl.style.height = `${zone.h}%`;
+    }
+  }
+
+  // Pushes a point that falls inside a restricted rectangle out to its
+  // nearest edge, so a design placement slides around it instead of
+  // landing on it.
+  clampOutsideZone(px, py, zone) {
+    const left = zone.x - zone.w / 2;
+    const right = zone.x + zone.w / 2;
+    const top = zone.y - zone.h / 2;
+    const bottom = zone.y + zone.h / 2;
+    if (px < left || px > right || py < top || py > bottom) return [px, py];
+
+    const margin = 1.5;
+    const distances = { left: px - left, right: right - px, top: py - top, bottom: bottom - py };
+    const nearest = Object.keys(distances).reduce((a, b) => (distances[a] <= distances[b] ? a : b));
+    if (nearest === 'left') return [Math.max(5, left - margin), py];
+    if (nearest === 'right') return [Math.min(95, right + margin), py];
+    if (nearest === 'top') return [px, Math.max(5, top - margin)];
+    return [px, Math.min(95, bottom + margin)];
   }
 
   setColorway(index) {
@@ -441,7 +478,11 @@ class KaCustomizer extends HTMLElement {
   /* -- placements ------------------------------------------------------- */
 
   addPlacement(designIndex) {
-    this.currentPlacements.push({ design: designIndex, x: 50, y: 42, scale: 1, rot: 0 });
+    let x = 50;
+    let y = 42;
+    const zone = this.photoMode ? this.currentCanvas.noGoZone : null;
+    if (zone) [x, y] = this.clampOutsideZone(x, y, zone);
+    this.currentPlacements.push({ design: designIndex, x, y, scale: 1, rot: 0 });
     this.select(this.currentPlacements.length - 1);
     this.updateCommerce();
   }
