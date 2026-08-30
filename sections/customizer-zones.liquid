@@ -1,0 +1,138 @@
+{%- comment -%}
+  Merchant utility: drag a box on the real garment photo to get exact
+  restricted-area percentages for a Canvas block, instead of guessing at
+  the four sliders in the theme editor.
+
+  It reads the designer page's own [data-kc-config] JSON rather than
+  duplicating any canvas settings, so it cannot drift out of sync when a
+  garment is added or a photo changes.
+
+  A storefront page cannot write section settings back, so this is a
+  read-out tool: it ends at "here are your four numbers". The UI says so
+  plainly and mirrors the slider labels verbatim to make transcription
+  reliable.
+{%- endcomment -%}
+
+<zone-picker
+  class="page-width section zp"
+  data-designer-url="{{ section.settings.designer_url | default: '/pages/designer' }}"
+>
+  <div class="zp__header">
+    <h1 class="zp__title">{{ section.settings.heading }}</h1>
+    <p class="zp__subtext">{{ section.settings.subtext }}</p>
+  </div>
+
+  <p class="zp__status" data-zp-status>{{ 'sections.zone_picker.loading' | t }}</p>
+
+  <div class="zp__layout" data-zp-main hidden>
+    <div class="zp__stage-column">
+      <div class="zp__controls">
+        <label class="zp__field">
+          <span class="zp__field-label">{{ 'sections.zone_picker.garment' | t }}</span>
+          <select class="select" data-zp-canvas></select>
+        </label>
+        <label class="zp__field" data-zp-colorway-field hidden>
+          <span class="zp__field-label">{{ 'sections.zone_picker.colorway' | t }}</span>
+          <select class="select" data-zp-colorway></select>
+        </label>
+        <div class="zp__field" data-zp-view-field hidden>
+          <span class="zp__field-label">{{ 'sections.zone_picker.side' | t }}</span>
+          <div class="kc__toggle" role="tablist">
+            <button type="button" data-zp-view="front" aria-current="true">{{ 'sections.zone_picker.front' | t }}</button>
+            <button type="button" data-zp-view="back" aria-current="false">{{ 'sections.zone_picker.back' | t }}</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="zp__stage" data-zp-stage>
+        <div class="zp__frame" data-zp-frame>
+          {%- comment -%}
+            The real photo is swapped in by JS once the designer page's
+            config has been read; this placeholder keeps the tag valid.
+          {%- endcomment -%}
+          <img
+            src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+            alt=""
+            class="zp__photo"
+            data-zp-photo
+            width="900"
+            height="1100"
+            draggable="false"
+          >
+          <div class="zp__box" data-zp-box tabindex="0" role="application"
+               aria-label="{{ 'sections.zone_picker.box_label' | t }}">
+            <span class="zp__handle" data-zp-handle="nw"></span>
+            <span class="zp__handle" data-zp-handle="ne"></span>
+            <span class="zp__handle" data-zp-handle="sw"></span>
+            <span class="zp__handle" data-zp-handle="se"></span>
+          </div>
+        </div>
+      </div>
+
+      <p class="zp__hint">{{ 'sections.zone_picker.hint' | t }}</p>
+    </div>
+
+    <div class="zp__panel">
+      <h2 class="zp__panel-title">{{ 'sections.zone_picker.readout_title' | t }} &mdash; <span data-zp-canvas-name></span></h2>
+
+      <dl class="zp__readout">
+        <div class="zp__readout-row">
+          <dt>Center &mdash; horizontal</dt>
+          <dd><output data-zp-out="x">0</output>%</dd>
+        </div>
+        <div class="zp__readout-row">
+          <dt>Center &mdash; vertical</dt>
+          <dd><output data-zp-out="y">0</output>%</dd>
+        </div>
+        <div class="zp__readout-row">
+          <dt>Width</dt>
+          <dd><output data-zp-out="w">0</output>%</dd>
+        </div>
+        <div class="zp__readout-row">
+          <dt>Height</dt>
+          <dd><output data-zp-out="h">0</output>%</dd>
+        </div>
+      </dl>
+
+      <button type="button" class="button button--full" data-zp-copy>
+        {{ 'sections.zone_picker.copy' | t }}
+      </button>
+      <button type="button" class="button button--secondary button--full" data-zp-clear>
+        {{ 'sections.zone_picker.clear' | t }}
+      </button>
+
+      <p class="zp__note">{{ 'sections.zone_picker.transcribe_note' | t }}</p>
+
+      <a class="zp__preview-link" data-zp-preview href="#" target="_blank" rel="noopener">
+        {{ 'sections.zone_picker.preview' | t }}
+      </a>
+    </div>
+  </div>
+</zone-picker>
+
+<script src="{{ 'zone-picker.js' | asset_url }}" type="module"></script>
+
+{% schema %}
+{
+  "name": "Zone picker",
+  "settings": [
+    {
+      "type": "paragraph",
+      "content": "Internal tool. Create a page, assign it this template, and keep it out of your navigation. Use it to set the 'Restricted area' values on a Design studio canvas block by dragging a box on the real garment photo."
+    },
+    { "type": "text", "id": "heading", "label": "Heading", "default": "Zone picker" },
+    {
+      "type": "textarea",
+      "id": "subtext",
+      "label": "Subtext",
+      "default": "Drag a box over the area designs should stay off — a pocket, seam, zipper or existing print. Then copy the four numbers into that garment's canvas block in the theme editor."
+    },
+    {
+      "type": "url",
+      "id": "designer_url",
+      "label": "Designer page",
+      "info": "Where the studio lives, so this tool can read your garments. Defaults to /pages/designer."
+    }
+  ]
+}
+{% endschema %}

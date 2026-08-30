@@ -1,0 +1,14 @@
+{
+  "sections": {
+    "main": {
+      "type": "customizer-zones",
+      "settings": {
+        "heading": "Zone picker",
+        "subtext": "Drag a box over the area designs should stay off — a pocket, seam, zipper or existing print. Then copy the four numbers into that garment's canvas block in the theme editor."
+      }
+    }
+  },
+  "order": [
+    "main"
+  ]
+}

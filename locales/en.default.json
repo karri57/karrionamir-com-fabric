@@ -177,6 +177,21 @@
       "summary_designs": "Designs",
       "summary_total": "Total"
     },
+    "zone_picker": {
+      "loading": "Reading your garments…",
+      "garment": "Garment",
+      "colorway": "Colourway",
+      "side": "Side",
+      "front": "Front",
+      "back": "Back",
+      "box_label": "Restricted area. Drag to move, drag a corner to resize, or use arrow keys.",
+      "hint": "Drag the box to move it, drag a corner to resize. Arrow keys nudge by 1%, Shift+arrow by 5%, Alt+arrow resizes.",
+      "readout_title": "Restricted area",
+      "copy": "Copy all four",
+      "clear": "Reset box",
+      "preview": "Preview this zone in the studio →",
+      "transcribe_note": "These values can't be saved from here — Shopify doesn't let a storefront page write theme settings. Copy them into Online Store → Themes → Customize → your Designer page → the matching canvas block → Restricted area. Typing each number is more precise than dragging the slider."
+    },
     "customizer_promo": {
       "drag_hint": "Drag a design onto the shirt — double-tap a placed design to remove it",
       "clear": "Clear"

@@ -2604,3 +2604,191 @@ p {
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 2rem;
 }
+
+/* ==========================================================================
+   Zone picker (merchant tool)
+   ========================================================================== */
+.zp {
+  --kc-space-2: 0.5rem;
+  --kc-space-3: 0.75rem;
+  --kc-space-4: 1rem;
+  --kc-space-5: 1.5rem;
+  --kc-space-6: 2rem;
+  --kc-radius-sm: 8px;
+  --kc-radius-lg: 20px;
+  --kc-radius-pill: 999px;
+  --kc-text-xs: 0.75rem;
+  --kc-text-sm: 0.8125rem;
+  --kc-hairline: rgb(from var(--color-fg) r g b / 10%);
+  --kc-fg-subtle: rgb(from var(--color-fg) r g b / 55%);
+}
+
+.zp__header {
+  margin-bottom: var(--kc-space-5);
+}
+
+.zp__title {
+  font-size: clamp(1.5rem, 5vw, 2rem);
+}
+
+.zp__subtext {
+  color: var(--kc-fg-subtle);
+  margin-top: var(--kc-space-2);
+  max-width: 46rem;
+  text-wrap: pretty;
+}
+
+.zp__status {
+  color: var(--kc-fg-subtle);
+}
+
+.zp__layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--kc-space-6);
+}
+
+@media screen and (min-width: 990px) {
+  .zp__layout {
+    grid-template-columns: minmax(0, 1fr) 22rem;
+    align-items: start;
+  }
+}
+
+.zp__stage-column {
+  min-width: 0;
+}
+
+.zp__controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--kc-space-4);
+  margin-bottom: var(--kc-space-4);
+}
+
+.zp__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--kc-space-2);
+}
+
+.zp__field-label {
+  font-size: var(--kc-text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--kc-fg-subtle);
+}
+
+.zp__stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 4 / 5;
+  padding: var(--kc-space-5);
+  background: var(--color-surface);
+  border-radius: var(--kc-radius-lg);
+  overflow: hidden;
+}
+
+/* Shrink-wrapped to the photo so percentages match the studio exactly. */
+.zp__frame {
+  position: relative;
+  display: inline-block;
+  height: 100%;
+  touch-action: none;
+}
+
+.zp__photo {
+  display: block;
+  height: 100%;
+  width: auto;
+  max-width: 100%;
+  border-radius: var(--kc-radius-sm);
+}
+
+/* Deliberately identical to .kc__restricted so the merchant is looking at
+   what the shopper will actually see, not an approximation. */
+.zp__box {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  cursor: move;
+  border: 1px dashed rgb(from var(--color-fg) r g b / 55%);
+  border-radius: var(--kc-radius-sm);
+  background-image: repeating-linear-gradient(
+    135deg,
+    rgb(from var(--color-fg) r g b / 10%) 0 8px,
+    transparent 8px 16px
+  );
+}
+
+.zp__box:focus-visible {
+  outline: 2px solid var(--color-fg);
+  outline-offset: 3px;
+}
+
+.zp__handle {
+  position: absolute;
+  width: 1.25rem;
+  height: 1.25rem;
+  background: var(--color-bg);
+  border: 2px solid var(--color-fg);
+  border-radius: var(--kc-radius-pill);
+}
+
+.zp__handle[data-zp-handle='nw'] { top: 0; left: 0; translate: -50% -50%; cursor: nwse-resize; }
+.zp__handle[data-zp-handle='ne'] { top: 0; right: 0; translate: 50% -50%; cursor: nesw-resize; }
+.zp__handle[data-zp-handle='sw'] { bottom: 0; left: 0; translate: -50% 50%; cursor: nesw-resize; }
+.zp__handle[data-zp-handle='se'] { bottom: 0; right: 0; translate: 50% 50%; cursor: nwse-resize; }
+
+.zp__hint {
+  font-size: var(--kc-text-sm);
+  color: var(--kc-fg-subtle);
+  margin-top: var(--kc-space-3);
+}
+
+.zp__panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--kc-space-3);
+}
+
+.zp__panel-title {
+  font-size: 1rem;
+}
+
+.zp__readout {
+  display: flex;
+  flex-direction: column;
+  gap: var(--kc-space-2);
+  margin-bottom: var(--kc-space-2);
+}
+
+.zp__readout-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--kc-space-4);
+  padding-bottom: var(--kc-space-2);
+  border-bottom: 1px solid var(--kc-hairline);
+}
+
+.zp__readout-row dt {
+  color: var(--kc-fg-subtle);
+  font-size: var(--kc-text-sm);
+}
+
+.zp__readout-row dd {
+  font-size: 1.25rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.zp__note {
+  font-size: var(--kc-text-xs);
+  color: var(--kc-fg-subtle);
+  text-wrap: pretty;
+}
+
+.zp__preview-link {
+  font-size: var(--kc-text-sm);
+  text-decoration: underline;
+}

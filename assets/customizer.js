@@ -89,6 +89,17 @@ class KaCustomizer extends HTMLElement {
       if (index >= 0) this.state.canvasIndex = index;
     }
 
+    // ?zone=x,y,w,h lets the zone picker preview a restricted area on the
+    // real studio before the merchant commits it in the theme editor. Not
+    // persisted, and it can only ever restrict placement further.
+    const zoneParam = params.get('zone');
+    if (zoneParam) {
+      const [x, y, w, h] = zoneParam.split(',').map(Number);
+      if ([x, y, w, h].every(Number.isFinite) && w > 0 && h > 0) {
+        this.zoneOverride = { x, y, w, h };
+      }
+    }
+
     this.renderDesignTray();
     this.setCanvas(this.state.canvasIndex);
     this.bindEvents();
@@ -289,6 +300,12 @@ class KaCustomizer extends HTMLElement {
     return (this.state.placements[this.key] ||= []);
   }
 
+  // A ?zone= preview from the zone picker wins over the saved setting for
+  // the life of the page; everything that reads a zone goes through here.
+  get activeZone() {
+    return this.zoneOverride || this.currentCanvas.noGoZone;
+  }
+
   /* -- setup ------------------------------------------------------------ */
 
   renderDesignTray() {
@@ -413,7 +430,7 @@ class KaCustomizer extends HTMLElement {
         const rect = this.frame.getBoundingClientRect();
         let x = Math.min(95, Math.max(5, this.dragBase.px + ((event.clientX - this.dragBase.x) / rect.width) * 100));
         let y = Math.min(95, Math.max(5, this.dragBase.py + ((event.clientY - this.dragBase.y) / rect.height) * 100));
-        const zone = this.currentCanvas.noGoZone;
+        const zone = this.activeZone;
         if (zone) [x, y] = this.clampOutsideZone(x, y, zone);
         placement.x = x;
         placement.y = y;
@@ -482,7 +499,7 @@ class KaCustomizer extends HTMLElement {
 
   renderZone() {
     if (!this.zoneEl) return;
-    const zone = this.currentCanvas.noGoZone;
+    const zone = this.activeZone;
     this.zoneEl.hidden = !zone;
     if (zone) {
       this.zoneEl.style.left = `${zone.x}%`;
@@ -639,7 +656,7 @@ class KaCustomizer extends HTMLElement {
   addPlacement(designIndex) {
     let x = 50;
     let y = 42;
-    const zone = this.currentCanvas.noGoZone;
+    const zone = this.activeZone;
     if (zone) [x, y] = this.clampOutsideZone(x, y, zone);
     this.currentPlacements.push({ design: designIndex, x, y, scale: 1, rot: 0 });
     this.select(this.currentPlacements.length - 1);
