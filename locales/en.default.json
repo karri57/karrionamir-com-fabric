@@ -147,7 +147,12 @@
   "sections": {
     "customizer": {
       "gesture_hint": "Tap a design to place it. Drag to move, pinch to resize, twist to rotate.",
-      "trust_note": "🔒 Secure checkout · your design is saved with your order"
+      "trust_note": "🔒 Secure checkout · your design is saved with your order",
+      "setup_prompt": "No garments set up yet. In the theme editor, open this page's Design studio section and add a Canvas block with a garment photo.",
+      "empty_title": "The design studio is taking a short break",
+      "empty_link": "Browse the collection",
+      "designs_empty": "No designs available right now.",
+      "designs_empty_merchant": "No designs yet. Add Design blocks to this section in the theme editor."
     },
     "customizer_promo": {
       "drag_hint": "Drag a design onto the shirt — double-tap a placed design to remove it",
