@@ -57,6 +57,11 @@ class KaCustomizer extends HTMLElement {
       view: 'front',
       placements: {},
       selected: null,
+      step: 'design',
+      // Auto-advance fires only into steps the shopper has not reached
+      // yet, so editing a choice later never yanks them forward again.
+      visited: new Set(['design']),
+      sheet: 'peek',
     };
 
     this.pointers = new Map();
@@ -72,6 +77,8 @@ class KaCustomizer extends HTMLElement {
     this.tools = this.querySelector('[data-kc-tools]');
     this.photoEl = this.querySelector('[data-kc-photo]');
     this.zoneEl = this.querySelector('[data-kc-restricted]');
+    this.panel = this.querySelector('[data-kc-panel]');
+    this.desktop = window.matchMedia('(min-width: 990px)');
 
     const params = new URLSearchParams(window.location.search);
     // ?garment= is the historical spelling, kept so older links still work.
@@ -85,6 +92,189 @@ class KaCustomizer extends HTMLElement {
     this.renderDesignTray();
     this.setCanvas(this.state.canvasIndex);
     this.bindEvents();
+    this.bindSheet();
+  }
+
+  /* -- steps ------------------------------------------------------------- */
+
+  // Colour and size only exist as steps when the garment actually offers a
+  // choice. Both tests mirror the ones renderColorways/renderSizes already
+  // use, so there is a single definition of "does this control apply".
+  get steps() {
+    const canvas = this.currentCanvas;
+    const variants = canvas.variants;
+    const hasColor = canvas.colorways.length > 1;
+    const hasSize =
+      variants.length > 1 || (variants.length === 1 && variants[0].title !== 'Default Title');
+    return ['design', 'color', 'size', 'review'].filter(
+      (step) => (step !== 'color' || hasColor) && (step !== 'size' || hasSize)
+    );
+  }
+
+  setStep(step) {
+    if (!this.steps.includes(step)) return;
+    this.state.step = step;
+    this.state.visited.add(step);
+    this.updateSteps();
+    // Designing needs the garment; every other step needs the controls.
+    if (!this.desktop.matches) this.setSheet(step === 'design' ? 'peek' : 'open');
+    this.querySelector(`[data-kc-step-panel="${step}"] [data-kc-step-focus]`)?.focus();
+  }
+
+  advanceFrom(step, { force = false } = {}) {
+    const order = this.steps;
+    const next = order[order.indexOf(step) + 1];
+    if (!next) return;
+    if (!force) {
+      if (this.state.step !== step) return;
+      if (this.state.visited.has(next)) return;
+    }
+    this.setStep(next);
+  }
+
+  updateSteps() {
+    const order = this.steps;
+    const active = order.includes(this.state.step) ? this.state.step : order[0];
+    this.state.step = active;
+
+    this.querySelectorAll('[data-kc-step], [data-kc-step-panel]').forEach((el) => {
+      const step = el.dataset.kcStep || el.dataset.kcStepPanel;
+      const applies = order.includes(step);
+      const isPanel = Boolean(el.dataset.kcStepPanel);
+      // Nav chips stay visible for every applicable step; only one panel
+      // body is shown at a time.
+      el.hidden = !applies || (isPanel && step !== active);
+      el.dataset.state = step === active ? 'active' : this.state.visited.has(step) ? 'done' : 'todo';
+      if (el.dataset.kcStep) el.setAttribute('aria-current', String(step === active));
+      const value = el.querySelector('[data-kc-step-value]');
+      if (value) value.textContent = this.stepSummary(step);
+    });
+
+    const next = this.querySelector('[data-kc-step-next]');
+    if (next) next.hidden = this.designCount() === 0 || active !== 'design';
+    this.renderSummary();
+  }
+
+  designCount() {
+    const key = this.currentCanvas.key;
+    return (
+      (this.state.placements[`${key}-front`] || []).length +
+      (this.state.placements[`${key}-back`] || []).length
+    );
+  }
+
+  stepSummary(step) {
+    if (step === 'design') {
+      const count = this.designCount();
+      return count ? `${count} placed` : 'None yet';
+    }
+    if (step === 'color') return this.currentCanvas.colorways[this.state.colorwayIndex]?.name || '';
+    if (step === 'size') return this.currentCanvas.variants[this.state.sizeIndex]?.title || '';
+    const base = this.basePriceCents();
+    return base == null ? '' : money(base + this.feeDollars() * 100);
+  }
+
+  renderSummary() {
+    const holder = this.querySelector('[data-kc-summary]');
+    if (!holder) return;
+    const canvas = this.currentCanvas;
+    const rows = [['Garment', canvas.label]];
+    if (canvas.colorways.length > 1) {
+      rows.push(['Colour', canvas.colorways[this.state.colorwayIndex]?.name || '']);
+    }
+    const size = canvas.variants[this.state.sizeIndex]?.title;
+    if (size && size !== 'Default Title') rows.push(['Size', size]);
+    rows.push(['Designs', this.designCount() ? `${this.designCount()} placed` : 'None']);
+    const base = this.basePriceCents();
+    if (base != null) rows.push(['Total', money(base + this.feeDollars() * 100)]);
+
+    holder.innerHTML = rows
+      .map(([term, value]) => `<div class="kc__summary-row"><dt>${term}</dt><dd>${value}</dd></div>`)
+      .join('');
+  }
+
+  /* -- bottom sheet (phones) --------------------------------------------- */
+
+  bindSheet() {
+    const handle = this.querySelector('[data-kc-sheet-handle]');
+    if (!handle || !this.panel) return;
+    // Marks the panel as sheet-managed. Without JS the CSS leaves it as a
+    // plain block in flow, so the studio still works.
+    this.dataset.sheet = this.state.sheet;
+
+    let base = null;
+
+    handle.addEventListener('pointerdown', (event) => {
+      if (this.desktop.matches) return;
+      handle.setPointerCapture(event.pointerId);
+      base = {
+        pointerId: event.pointerId,
+        y: event.clientY,
+        height: this.panel.getBoundingClientRect().height,
+        time: performance.now(),
+        moved: 0,
+        // A tap that lands on the toggle button is handled by its own click
+        // (which also serves keyboard users); toggling here too would fire
+        // twice and cancel itself out.
+        onToggle: Boolean(event.target.closest('[data-kc-sheet-toggle]')),
+      };
+      this.panel.dataset.dragging = '';
+    });
+
+    handle.addEventListener('pointermove', (event) => {
+      if (!base || event.pointerId !== base.pointerId) return;
+      const dy = base.y - event.clientY;
+      base.moved = Math.max(base.moved, Math.abs(dy));
+      this.style.setProperty('--kc-sheet-h', `${this.rubberBand(base.height + dy)}px`);
+    });
+
+    const end = (event) => {
+      if (!base || event.pointerId !== base.pointerId) return;
+      const dy = base.y - event.clientY;
+      const velocity = dy / Math.max(1, performance.now() - base.time);
+      const height = base.height + dy;
+      const tap = base.moved < 6;
+      const onToggle = base.onToggle;
+      let mode;
+      if (tap) mode = this.state.sheet === 'open' ? 'peek' : 'open';
+      else if (Math.abs(velocity) > 0.4) mode = velocity > 0 ? 'open' : 'peek';
+      else mode = height > (this.peekHeight() + this.openHeight()) / 2 ? 'open' : 'peek';
+      delete this.panel.dataset.dragging;
+      base = null;
+      if (tap && onToggle) {
+        this.style.removeProperty('--kc-sheet-h');
+        return;
+      }
+      this.setSheet(mode);
+    };
+    handle.addEventListener('pointerup', end);
+    handle.addEventListener('pointercancel', end);
+
+    this.desktop.addEventListener('change', () => this.setSheet('peek'));
+  }
+
+  setSheet(mode) {
+    this.state.sheet = mode;
+    this.dataset.sheet = mode;
+    // Hand height back to CSS so the class-driven transition runs.
+    this.style.removeProperty('--kc-sheet-h');
+    this.querySelector('[data-kc-sheet-toggle]')?.setAttribute('aria-expanded', String(mode === 'open'));
+  }
+
+  peekHeight() {
+    return parseFloat(getComputedStyle(this).getPropertyValue('--kc-sheet-peek')) || 152;
+  }
+
+  openHeight() {
+    return window.innerHeight * 0.62;
+  }
+
+  rubberBand(height) {
+    const low = this.peekHeight();
+    const high = this.openHeight();
+    if (height < low) return low - (low - height) * 0.35;
+    if (height > high) return high + (height - high) * 0.35;
+    return height;
   }
 
   get currentCanvas() {
@@ -123,6 +313,17 @@ class KaCustomizer extends HTMLElement {
 
   bindEvents() {
     this.addEventListener('click', (event) => {
+      const stepButton = event.target.closest('[data-kc-step]');
+      if (stepButton) return this.setStep(stepButton.dataset.kcStep);
+
+      if (event.target.closest('[data-kc-step-next]')) {
+        return this.advanceFrom(this.state.step, { force: true });
+      }
+
+      if (event.target.closest('[data-kc-sheet-toggle]')) {
+        return this.setSheet(this.state.sheet === 'open' ? 'peek' : 'open');
+      }
+
       const canvasButton = event.target.closest('[data-kc-canvas]');
       if (canvasButton) {
         const index = this.config.canvases.findIndex((c) => c.key === canvasButton.dataset.kcCanvas);
@@ -161,6 +362,8 @@ class KaCustomizer extends HTMLElement {
       const item = event.target.closest('[data-kc-item]');
       if (item) {
         event.preventDefault();
+        // Lets the CSS fade the floating chrome back while composing.
+        this.stage.dataset.dragging = '';
         this.select(Number(item.dataset.kcItem));
         const placement = this.currentPlacements[this.state.selected];
         this.dragBase = {
@@ -220,6 +423,7 @@ class KaCustomizer extends HTMLElement {
 
     const endPointer = (event) => {
       this.pointers.delete(event.pointerId);
+      if (this.pointers.size === 0) delete this.stage.dataset.dragging;
       if (this.pointers.size < 2) this.gestureBase = null;
       if (this.dragBase && event.pointerId === this.dragBase.pointerId) {
         // Hand the drag to a remaining finger, if any.
@@ -241,6 +445,10 @@ class KaCustomizer extends HTMLElement {
     this.state.colorwayIndex = 0;
     this.state.view = 'front';
     this.state.selected = null;
+    // Changing garment invalidates colour and size, so the guided run
+    // starts over rather than claiming steps were already completed.
+    this.state.step = 'design';
+    this.state.visited = new Set(['design']);
 
     // Honor a colorway carried over from the picker page, once.
     if (this.requestedColorway) {
@@ -252,7 +460,7 @@ class KaCustomizer extends HTMLElement {
     }
     const firstAvailable = this.currentCanvas.variants.findIndex((v) => v.available);
     this.state.sizeIndex = firstAvailable >= 0 ? firstAvailable : 0;
-    if (this.tools) this.tools.hidden = true;
+    this.hideTools();
 
     this.querySelectorAll('[data-kc-canvas]').forEach((b) =>
       b.setAttribute('aria-current', b.dataset.kcCanvas === this.currentCanvas.key ? 'true' : 'false')
@@ -268,8 +476,8 @@ class KaCustomizer extends HTMLElement {
     this.renderColorways();
     this.renderSizes();
     this.renderZone();
-    this.updateCommerce();
     this.renderPlacements();
+    this.updateCommerce();
   }
 
   renderZone() {
@@ -315,12 +523,15 @@ class KaCustomizer extends HTMLElement {
     this.updatePhoto();
     this.renderColorways();
     this.renderPlacements();
+    this.updateCommerce();
+    this.advanceFrom('color');
   }
 
   setSize(index) {
     this.state.sizeIndex = index;
     this.renderSizes();
     this.updateCommerce();
+    this.advanceFrom('size');
   }
 
   updatePhoto() {
@@ -403,15 +614,24 @@ class KaCustomizer extends HTMLElement {
     return all.reduce((sum, p) => sum + Math.max(0, Math.round(this.config.designs[p.design]?.price || 0)), 0);
   }
 
+  // The step flow guides but never gates: the Add button is governed purely
+  // by whether a sellable variant exists, exactly as before.
   updateCommerce() {
     const addButton = this.querySelector('[data-kc-add]');
     const note = this.querySelector('[data-kc-note]');
     const variant = this.selectedVariant();
-    if (addButton) addButton.hidden = !variant;
+    const chosen = this.currentCanvas.variants[this.state.sizeIndex];
+    if (addButton) {
+      addButton.hidden = !variant;
+      // Unavailable sizes are disabled in the grid, but a deep link plus a
+      // stale index could still land on one.
+      addButton.disabled = Boolean(variant) && Boolean(chosen) && !chosen.available;
+    }
     if (note) note.hidden = Boolean(variant);
     const priceEl = this.querySelector('[data-kc-price]');
     const base = this.basePriceCents();
     if (priceEl && base != null) priceEl.textContent = money(base + this.feeDollars() * 100);
+    this.updateSteps();
   }
 
   /* -- placements ------------------------------------------------------- */
@@ -424,11 +644,26 @@ class KaCustomizer extends HTMLElement {
     this.currentPlacements.push({ design: designIndex, x, y, scale: 1, rot: 0 });
     this.select(this.currentPlacements.length - 1);
     this.updateCommerce();
+    // Deliberately no auto-advance: design is the open-ended step, and
+    // moving the panel away mid-composition would fight the shopper. The
+    // "Continue" button appears instead.
+  }
+
+  // `hidden` is overridden in CSS so the pill can fade rather than vanish,
+  // which means assistive tech has to be told separately.
+  hideTools() {
+    if (!this.tools) return;
+    this.tools.hidden = true;
+    this.tools.setAttribute('aria-hidden', 'true');
   }
 
   select(index) {
     this.state.selected = index;
-    if (this.tools) this.tools.hidden = index === null;
+    if (index === null) this.hideTools();
+    else if (this.tools) {
+      this.tools.hidden = false;
+      this.tools.setAttribute('aria-hidden', 'false');
+    }
     this.renderPlacements();
   }
 
@@ -442,7 +677,7 @@ class KaCustomizer extends HTMLElement {
     if (tool === 'delete') {
       this.currentPlacements.splice(this.state.selected, 1);
       this.state.selected = null;
-      if (this.tools) this.tools.hidden = true;
+      this.hideTools();
       this.updateCommerce();
     }
     this.renderPlacements();

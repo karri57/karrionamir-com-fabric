@@ -152,7 +152,30 @@
       "empty_title": "The design studio is taking a short break",
       "empty_link": "Browse the collection",
       "designs_empty": "No designs available right now.",
-      "designs_empty_merchant": "No designs yet. Add Design blocks to this section in the theme editor."
+      "designs_empty_merchant": "No designs yet. Add Design blocks to this section in the theme editor.",
+      "steps_label": "Design steps",
+      "step_design": "Design",
+      "step_color": "Colour",
+      "step_size": "Size",
+      "step_review": "Review",
+      "step_design_heading": "Place your designs",
+      "step_color_heading": "Choose a colour",
+      "step_size_heading": "Pick your size",
+      "step_review_heading": "Review your piece",
+      "step_design_empty": "None yet",
+      "step_design_count": {
+        "one": "{{ count }} placed",
+        "other": "{{ count }} placed"
+      },
+      "continue": "Continue",
+      "download": "Download preview",
+      "expand_controls": "Expand controls",
+      "no_product_note": "To sell this piece, pick its product in this canvas block's theme-editor settings.",
+      "summary_garment": "Garment",
+      "summary_color": "Colour",
+      "summary_size": "Size",
+      "summary_designs": "Designs",
+      "summary_total": "Total"
     },
     "customizer_promo": {
       "drag_hint": "Drag a design onto the shirt — double-tap a placed design to remove it",

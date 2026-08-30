@@ -8,6 +8,13 @@
   photo so shoppers can design both sides. Shoppers place brand designs
   (uploaded as Design blocks) onto the photo.
 
+  Layout: the garment is permanently visible and is the visual subject;
+  the controls are stepped (design -> colour -> size -> review) so the
+  shopper is guided rather than shown everything at once. The step nav
+  lives at the top of the control panel rather than in its own column,
+  so the panel can become a bottom sheet on phones without relocating
+  any DOM across breakpoints.
+
   Add-to-cart posts the canvas's product with the design serialized
   into line item properties (visible on the order in Shopify admin).
 {%- endcomment -%}
@@ -123,25 +130,19 @@
 
     <div class="kc__layout">
       <div class="kc__stage-column">
-        <div class="kc__toolbar">
-          <div class="kc__canvas-tabs" role="tablist" aria-label="Garment">
-            {%- for block in section.blocks -%}
-              {%- if block.type == 'canvas' and block.settings.photo_1 != blank -%}
-                <button
-                  type="button"
-                  data-kc-canvas="{{ block.settings.label | handleize }}"
-                  aria-current="{% if forloop.first %}true{% else %}false{% endif %}"
-                  {{ block.shopify_attributes }}
-                >
-                  {{ block.settings.label }}
-                </button>
-              {%- endif -%}
-            {%- endfor -%}
-          </div>
-          <div class="kc__toggle" role="tablist" aria-label="Side" data-kc-photo-view-group hidden>
-            <button type="button" data-kc-view="front" aria-current="true">Front</button>
-            <button type="button" data-kc-view="back" aria-current="false">Back</button>
-          </div>
+        <div class="kc__canvas-tabs" role="tablist" aria-label="Garment">
+          {%- for block in section.blocks -%}
+            {%- if block.type == 'canvas' and block.settings.photo_1 != blank -%}
+              <button
+                type="button"
+                data-kc-canvas="{{ block.settings.label | handleize }}"
+                aria-current="{% if forloop.first %}true{% else %}false{% endif %}"
+                {{ block.shopify_attributes }}
+              >
+                {{ block.settings.label }}
+              </button>
+            {%- endif -%}
+          {%- endfor -%}
         </div>
 
         <div class="kc__stage" data-kc-stage>
@@ -165,52 +166,128 @@
             <div class="kc__restricted" data-kc-restricted hidden></div>
             <div class="kc__placements" data-kc-placements></div>
           </div>
-        </div>
 
-        <div class="kc__selection-tools" data-kc-tools hidden>
-          <button type="button" data-kc-tool="smaller" aria-label="Smaller">&minus;</button>
-          <button type="button" data-kc-tool="bigger" aria-label="Bigger">+</button>
-          <button type="button" data-kc-tool="rotate-left" aria-label="Rotate left">&#8634;</button>
-          <button type="button" data-kc-tool="rotate-right" aria-label="Rotate right">&#8635;</button>
-          <button type="button" data-kc-tool="delete" aria-label="Remove design">{% render 'icon', name: 'delete' %}</button>
+          {%- comment -%}
+            Chrome floats over the stage so selecting a design never
+            reflows the page, and so the garment keeps the full frame.
+          {%- endcomment -%}
+          <div class="kc__toggle kc__view-switch" role="tablist" aria-label="Side" data-kc-photo-view-group hidden>
+            <button type="button" data-kc-view="front" aria-current="true">Front</button>
+            <button type="button" data-kc-view="back" aria-current="false">Back</button>
+          </div>
+
+          <div class="kc__selection-tools" data-kc-tools hidden aria-hidden="true">
+            <button type="button" data-kc-tool="smaller" aria-label="Smaller">&minus;</button>
+            <button type="button" data-kc-tool="bigger" aria-label="Bigger">+</button>
+            <button type="button" data-kc-tool="rotate-left" aria-label="Rotate left">&#8634;</button>
+            <button type="button" data-kc-tool="rotate-right" aria-label="Rotate right">&#8635;</button>
+            <button type="button" data-kc-tool="delete" aria-label="Remove design">{% render 'icon', name: 'delete' %}</button>
+          </div>
         </div>
       </div>
 
-      <div class="kc__panel">
-        <div class="kc__panel-group" data-kc-colorway-group hidden>
-          <span class="kc__panel-label">Colorway &mdash; <span data-kc-colorway-name></span></span>
-          <div class="kc__colorways" data-kc-colorways></div>
-        </div>
-        <div class="kc__panel-group" data-kc-size-group hidden>
-          <span class="kc__panel-label">Size</span>
-          <div class="kc__sizes" data-kc-sizes></div>
+      <div class="kc__panel" data-kc-panel>
+        {%- comment -%}
+          The grip is outside .kc__stage on purpose: the stage owns
+          pinch/rotate via its own pointer handlers, and keeping the two
+          gesture surfaces in disjoint subtrees is what stops them
+          fighting.
+        {%- endcomment -%}
+        <div class="kc__sheet-grip" data-kc-sheet-handle>
+          <span class="kc__sheet-bar" aria-hidden="true"></span>
+          <button
+            type="button"
+            class="kc__sheet-toggle"
+            data-kc-sheet-toggle
+            aria-expanded="false"
+            aria-controls="kc-panel-body"
+          >
+            <span class="visually-hidden">{{ 'sections.customizer.expand_controls' | t }}</span>
+          </button>
         </div>
 
-        <div class="kc__panel-group">
-          <span class="kc__panel-label">Designs &mdash; tap to place</span>
-          <div class="kc__designs" data-kc-designs>
-            <p class="kc__empty" data-kc-designs-empty>
-              {%- if request.design_mode -%}
-                {{ 'sections.customizer.designs_empty_merchant' | t }}
-              {%- else -%}
-                {{ 'sections.customizer.designs_empty' | t }}
-              {%- endif -%}
-            </p>
-          </div>
+        <nav class="kc__steps-nav" data-kc-steps-nav aria-label="{{ 'sections.customizer.steps_label' | t }}">
+          <button type="button" class="kc__step-tab" data-kc-step="design" data-state="active" aria-current="true">
+            <span class="kc__step-mark" aria-hidden="true">1</span>
+            <span class="kc__step-text">
+              <span class="kc__step-name">{{ 'sections.customizer.step_design' | t }}</span>
+              <span class="kc__step-value" data-kc-step-value></span>
+            </span>
+          </button>
+          <button type="button" class="kc__step-tab" data-kc-step="color" data-state="todo" aria-current="false">
+            <span class="kc__step-mark" aria-hidden="true">2</span>
+            <span class="kc__step-text">
+              <span class="kc__step-name">{{ 'sections.customizer.step_color' | t }}</span>
+              <span class="kc__step-value" data-kc-step-value></span>
+            </span>
+          </button>
+          <button type="button" class="kc__step-tab" data-kc-step="size" data-state="todo" aria-current="false">
+            <span class="kc__step-mark" aria-hidden="true">3</span>
+            <span class="kc__step-text">
+              <span class="kc__step-name">{{ 'sections.customizer.step_size' | t }}</span>
+              <span class="kc__step-value" data-kc-step-value></span>
+            </span>
+          </button>
+          <button type="button" class="kc__step-tab" data-kc-step="review" data-state="todo" aria-current="false">
+            <span class="kc__step-mark" aria-hidden="true">4</span>
+            <span class="kc__step-text">
+              <span class="kc__step-name">{{ 'sections.customizer.step_review' | t }}</span>
+              <span class="kc__step-value" data-kc-step-value></span>
+            </span>
+          </button>
+        </nav>
+
+        <div class="kc__panel-body" id="kc-panel-body">
+          <section class="kc__step" data-kc-step-panel="design" data-state="active">
+            <h2 class="kc__step-heading" tabindex="-1" data-kc-step-focus>{{ 'sections.customizer.step_design_heading' | t }}</h2>
+            <div class="kc__designs" data-kc-designs>
+              <p class="kc__empty" data-kc-designs-empty>
+                {%- if request.design_mode -%}
+                  {{ 'sections.customizer.designs_empty_merchant' | t }}
+                {%- else -%}
+                  {{ 'sections.customizer.designs_empty' | t }}
+                {%- endif -%}
+              </p>
+            </div>
+            <p class="kc__hint">{{ 'sections.customizer.gesture_hint' | t }}</p>
+            <button type="button" class="button button--secondary kc__step-next" data-kc-step-next hidden>
+              {{ 'sections.customizer.continue' | t }}
+            </button>
+          </section>
+
+          <section class="kc__step" data-kc-step-panel="color" data-state="todo" hidden>
+            <h2 class="kc__step-heading" tabindex="-1" data-kc-step-focus>{{ 'sections.customizer.step_color_heading' | t }}</h2>
+            <div data-kc-colorway-group hidden>
+              <span class="kc__panel-label">{{ 'sections.customizer.step_color' | t }} &mdash; <span data-kc-colorway-name></span></span>
+              <div class="kc__colorways" data-kc-colorways></div>
+            </div>
+          </section>
+
+          <section class="kc__step" data-kc-step-panel="size" data-state="todo" hidden>
+            <h2 class="kc__step-heading" tabindex="-1" data-kc-step-focus>{{ 'sections.customizer.step_size_heading' | t }}</h2>
+            <div data-kc-size-group hidden>
+              <div class="kc__sizes" data-kc-sizes></div>
+            </div>
+          </section>
+
+          <section class="kc__step" data-kc-step-panel="review" data-state="todo" hidden>
+            <h2 class="kc__step-heading" tabindex="-1" data-kc-step-focus>{{ 'sections.customizer.step_review_heading' | t }}</h2>
+            <dl class="kc__summary" data-kc-summary></dl>
+            <button type="button" class="button button--secondary button--full" data-kc-download>
+              {{ 'sections.customizer.download' | t }}
+            </button>
+          </section>
         </div>
 
         <div class="kc__actions">
           <button type="button" class="button button--full kc__add" data-kc-add hidden>
-            Add to cart <span aria-hidden="true">&bull;</span> <span data-kc-price></span>
-          </button>
-          <button type="button" class="button button--secondary button--full" data-kc-download>
-            Download preview
+            <span>{{ 'products.product.add_to_cart' | t }}</span>
+            <span class="kc__add-price" data-kc-price></span>
           </button>
           <p class="kc__note" data-kc-note hidden>
-            To sell this piece, pick its product in this canvas block's theme-editor settings.
+            {{ 'sections.customizer.no_product_note' | t }}
           </p>
           <p class="kc__trust">{{ 'sections.customizer.trust_note' | t }}</p>
-          <p class="kc__hint">{{ 'sections.customizer.gesture_hint' | t }}</p>
         </div>
       </div>
     </div>
@@ -279,7 +356,7 @@
         {
           "type": "header",
           "content": "Restricted area (optional)",
-          "info": "Keep designs off part of this garment — a pocket, seam, zipper, or existing print. Shown to shoppers as a soft hatched zone; designs slide away from it automatically. Leave width or height at 0 to turn it off. Tip: to get exact numbers, open your Zone picker page and drag a box on the real photo."
+          "info": "Keep designs off part of this garment — a pocket, seam, zipper, or existing print. Shown to shoppers as a soft hatched zone; designs slide away from it automatically. Leave width or height at 0 to turn it off. Not sure of the numbers? Open your Zone picker page to drag a box on the real photo and read them off."
         },
         { "type": "range", "id": "noprint_x", "label": "Center — horizontal", "min": 0, "max": 100, "step": 1, "unit": "%", "default": 50 },
         { "type": "range", "id": "noprint_y", "label": "Center — vertical", "min": 0, "max": 100, "step": 1, "unit": "%", "default": 20 },

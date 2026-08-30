@@ -105,16 +105,20 @@ p {
 /* ==========================================================================
    Layout
    ========================================================================== */
+/* The viewport is viewport-fit=cover, so content would otherwise run under
+   the notch in landscape; max() keeps the normal gutter everywhere else. */
 .page-width {
   width: 100%;
   max-width: var(--page-width);
   margin-inline: auto;
-  padding-inline: 1.5rem;
+  padding-left: max(1.5rem, env(safe-area-inset-left));
+  padding-right: max(1.5rem, env(safe-area-inset-right));
 }
 
 @media screen and (max-width: 749px) {
   .page-width {
-    padding-inline: 1rem;
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
   }
 }
 
@@ -1797,6 +1801,17 @@ p {
   --kc-fg-subtle: rgb(from var(--color-fg) r g b / 55%);
   --kc-fg-muted: rgb(from var(--color-fg) r g b / 72%);
   --kc-hairline: rgb(from var(--color-fg) r g b / 10%);
+
+  /* Bottom sheet. --kc-sheet-h is written inline by JS during a drag and
+     removed on release so the class-driven transition takes over again. */
+  --kc-safe-b: env(safe-area-inset-bottom, 0px);
+  --kc-sheet-peek: calc(9.5rem + var(--kc-safe-b));
+  --kc-sheet-max: 62dvh;
+  --kc-sheet-h: var(--kc-sheet-peek);
+}
+
+.kc[data-sheet='open'] {
+  --kc-sheet-h: var(--kc-sheet-max);
 }
 
 /* One guard covers every studio transition instead of per-rule checks. */
@@ -1834,17 +1849,25 @@ p {
 }
 
 .kc__subtext {
-  color: rgb(from var(--color-fg) r g b / 65%);
+  color: var(--kc-fg-muted);
   margin-top: 0.5rem;
   text-wrap: pretty;
   max-width: 34rem;
   margin-inline: auto;
 }
 
-/* The studio's own bottom padding clears the sticky mobile CTA. */
+/* The page reserves the collapsed sheet's band so nothing hides under it. */
 @media screen and (max-width: 989px) {
   .kc {
-    padding-bottom: 6.5rem;
+    padding-bottom: var(--kc-sheet-peek);
+  }
+
+  .kc__header {
+    margin-bottom: var(--kc-space-4);
+  }
+
+  .kc__subtext {
+    display: none;
   }
 }
 
@@ -1854,23 +1877,18 @@ p {
   gap: 2rem;
 }
 
+/* A fixed-width rail rather than a fraction: swapping step content must
+   never resize the canvas, or the garment stops feeling anchored. */
 @media screen and (min-width: 990px) {
   .kc__layout {
-    grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+    grid-template-columns: minmax(0, 1fr) 22rem;
+    gap: var(--kc-space-6) var(--kc-space-7);
     align-items: start;
   }
 }
 
 .kc__stage-column {
   min-width: 0;
-}
-
-.kc__toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 0.75rem 1rem;
-  margin-bottom: 1rem;
 }
 
 .kc__toggle {
@@ -1896,13 +1914,9 @@ p {
   gap: 0.4rem;
   overflow-x: auto;
   padding-bottom: 0.25rem;
+  margin-bottom: var(--kc-space-4);
   scrollbar-width: none;
   min-width: 0;
-  flex: 1 1 auto;
-}
-
-.kc__toolbar > .kc__toggle {
-  flex: 0 0 auto;
 }
 
 .kc__canvas-tabs::-webkit-scrollbar {
@@ -1921,13 +1935,6 @@ p {
   background: var(--color-fg);
   border-color: var(--color-fg);
   color: var(--color-bg);
-}
-
-.kc__photo {
-  display: block;
-  width: 100%;
-  height: auto;
-  border-radius: var(--radius);
 }
 
 .kc__colorways {
@@ -2002,14 +2009,20 @@ p {
   text-align: center;
 }
 
+/* Deference: the dot grid read as "tool canvas" and competed with the
+   fabric. A soft wash recedes, and the weight moves onto the garment
+   itself via a contact shadow — the same treatment the home showcase
+   uses, so the two surfaces read as one system. */
 .kc__stage {
   position: relative;
-  background-color: var(--color-surface);
-  background-image: radial-gradient(rgb(from var(--color-fg) r g b / 8%) 1.5px, transparent 1.5px);
-  background-size: 20px 20px;
-  border-radius: var(--radius);
-  padding: 1rem;
-  perspective: 900px;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 4 / 5;
+  background:
+    radial-gradient(120% 80% at 50% 8%, rgb(from var(--color-fg) r g b / 7%), transparent 62%),
+    var(--color-surface);
+  border-radius: var(--kc-radius-lg);
+  padding: var(--kc-space-4);
   /* Pinch/rotate gestures are handled in JS, so the browser must not
      claim the touch for scrolling or page zoom. */
   touch-action: none;
@@ -2018,12 +2031,42 @@ p {
 
 @media screen and (min-width: 750px) {
   .kc__stage {
-    padding: 1.5rem;
+    padding: var(--kc-space-5);
   }
 }
 
+/* Shrink-wrap the frame to the photo so the percentage space the drag
+   math divides by is exactly the photo box. */
 .kc__garment-wrap {
   position: relative;
+  display: inline-block;
+  height: 100%;
+}
+
+.kc__photo {
+  display: block;
+  height: 100%;
+  width: auto;
+  max-width: 100%;
+  border-radius: var(--kc-radius-sm);
+  filter: drop-shadow(0 24px 48px rgb(from var(--color-fg) r g b / 20%));
+}
+
+/* Chrome floats over the stage: selecting a design must not reflow. */
+.kc__view-switch {
+  position: absolute;
+  top: var(--kc-space-4);
+  right: var(--kc-space-4);
+  z-index: 2;
+  background: rgb(from var(--color-bg) r g b / 78%);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  transition: opacity var(--kc-duration-base) var(--kc-ease);
+}
+
+.kc__stage[data-dragging] .kc__view-switch,
+.kc__stage[data-dragging] .kc__selection-tools {
+  opacity: 0.4;
 }
 
 .kc__placements {
@@ -2062,11 +2105,40 @@ p {
   outline-offset: 4px;
 }
 
+/* Contextual controls float over the stage next to what they act on,
+   instead of reserving a row below it that sits empty most of the time
+   and shifts the page whenever a design is selected. */
 .kc__selection-tools {
+  position: absolute;
+  bottom: var(--kc-space-4);
+  left: 50%;
+  z-index: 2;
   display: flex;
-  justify-content: center;
-  gap: 0.5rem;
-  margin-top: 1rem;
+  gap: var(--kc-space-1);
+  padding: var(--kc-space-1);
+  border-radius: var(--kc-radius-pill);
+  background: rgb(from var(--color-bg) r g b / 76%);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  box-shadow: var(--kc-shadow-md), inset 0 0 0 1px var(--kc-hairline);
+  opacity: 0;
+  translate: -50% 8px;
+  pointer-events: none;
+  transition:
+    opacity var(--kc-duration-base) var(--kc-ease),
+    translate var(--kc-duration-base) var(--kc-ease);
+}
+
+/* `hidden` would set display:none and kill the transition; opacity plus
+   pointer-events already make it inert, so override the UA rule. */
+.kc__selection-tools[hidden] {
+  display: flex;
+}
+
+.kc__selection-tools:not([hidden]) {
+  opacity: 1;
+  translate: -50% 0;
+  pointer-events: auto;
 }
 
 .kc__selection-tools button {
@@ -2075,10 +2147,15 @@ p {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--color-border);
+  border: 0;
   border-radius: var(--kc-radius-pill);
   font-size: 1rem;
-  background: var(--color-bg);
+  background: transparent;
+  transition: background var(--kc-duration-fast) var(--kc-ease);
+}
+
+.kc__selection-tools button:hover {
+  background: var(--kc-hairline);
 }
 
 .kc__selection-tools button svg {
@@ -2086,18 +2163,266 @@ p {
   height: 1rem;
 }
 
+/* ---- control panel ---- */
+
 .kc__panel {
   display: flex;
   flex-direction: column;
-  gap: 1.75rem;
+  min-width: 0;
+}
+
+@media screen and (min-width: 990px) {
+  .kc__panel {
+    position: sticky;
+    top: var(--kc-space-5);
+    gap: var(--kc-space-5);
+  }
 }
 
 .kc__panel-label {
   display: block;
-  font-size: 0.8rem;
+  font-size: var(--kc-text-xs);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  margin-bottom: 0.75rem;
+  letter-spacing: var(--kc-tracking-wide);
+  color: var(--kc-fg-subtle);
+  margin-bottom: var(--kc-space-3);
+}
+
+/* ---- step navigation ---- */
+
+.kc__steps-nav {
+  display: flex;
+  gap: var(--kc-space-1);
+  flex: 0 0 auto;
+}
+
+.kc__step-tab {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--kc-space-2);
+  padding: var(--kc-space-2);
+  border-radius: var(--kc-radius-sm);
+  text-align: left;
+  transition: background var(--kc-duration-fast) var(--kc-ease);
+}
+
+.kc__step-tab:hover {
+  background: var(--kc-hairline);
+}
+
+.kc__step-mark {
+  flex: 0 0 auto;
+  width: 1.375rem;
+  height: 1.375rem;
+  display: grid;
+  place-items: center;
+  border-radius: var(--kc-radius-pill);
+  background: var(--kc-hairline);
+  color: var(--kc-fg-subtle);
+  font-size: var(--kc-text-xs);
+  transition:
+    background var(--kc-duration-base) var(--kc-ease),
+    color var(--kc-duration-base) var(--kc-ease);
+}
+
+.kc__step-tab[data-state='active'] .kc__step-mark {
+  background: var(--color-fg);
+  color: var(--color-bg);
+}
+
+.kc__step-tab[data-state='done'] .kc__step-mark {
+  background: rgb(from var(--color-fg) r g b / 30%);
+  color: var(--color-bg);
+}
+
+.kc__step-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.kc__step-name {
+  font-size: var(--kc-text-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--kc-tracking-wide);
+  white-space: nowrap;
+}
+
+.kc__step-value {
+  font-size: var(--kc-text-xs);
+  color: var(--kc-fg-subtle);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---- step panels ---- */
+
+.kc__panel-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding-top: var(--kc-space-5);
+}
+
+.kc__step-heading {
+  font-size: var(--kc-text-lg);
+  margin-bottom: var(--kc-space-4);
+}
+
+.kc__step-heading:focus-visible {
+  outline: 2px solid var(--color-fg);
+  outline-offset: 4px;
+}
+
+.kc__step-next {
+  margin-top: var(--kc-space-4);
+  width: 100%;
+}
+
+.kc__summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--kc-space-2);
+  margin-bottom: var(--kc-space-5);
+}
+
+.kc__summary-row {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--kc-space-4);
+  font-size: var(--kc-text-base);
+  padding-bottom: var(--kc-space-2);
+  border-bottom: 1px solid var(--kc-hairline);
+}
+
+.kc__summary-row dt {
+  color: var(--kc-fg-subtle);
+}
+
+.kc__add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--kc-space-2);
+}
+
+.kc__add-price {
+  opacity: 0.75;
+}
+
+.kc__add[disabled] {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+/* ---- bottom sheet (phones) ---- */
+
+.kc__sheet-grip {
+  display: none;
+}
+
+@media screen and (max-width: 989px) {
+  /* Gated on [data-sheet], which JS sets. Without JS the panel stays a
+     plain block in flow and the studio still works end to end. */
+  .kc[data-sheet] .kc__panel {
+    position: fixed;
+    inset-inline: 0;
+    bottom: 0;
+    z-index: 40;
+    height: var(--kc-sheet-h);
+    max-height: var(--kc-sheet-max);
+    padding: 0 var(--kc-space-4) var(--kc-safe-b);
+    background: var(--color-bg);
+    border-radius: var(--kc-radius-lg) var(--kc-radius-lg) 0 0;
+    box-shadow:
+      0 -1px 0 var(--kc-hairline),
+      0 -12px 32px -8px rgb(from var(--color-fg) r g b / 14%);
+    transition: height var(--kc-duration-base) var(--kc-ease);
+  }
+
+  /* Height is driven inline while a finger is down; no transition then. */
+  .kc[data-sheet] .kc__panel[data-dragging] {
+    transition: none;
+  }
+
+  .kc[data-sheet] .kc__sheet-grip {
+    position: relative;
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    height: 2.75rem;
+    margin-inline: calc(var(--kc-space-4) * -1);
+    /* This element owns vertical drag; the browser must not scroll it. */
+    touch-action: none;
+    cursor: grab;
+  }
+
+  .kc[data-sheet] .kc__panel[data-dragging] .kc__sheet-grip {
+    cursor: grabbing;
+  }
+
+  .kc__sheet-bar {
+    width: 2.25rem;
+    height: 4px;
+    border-radius: var(--kc-radius-pill);
+    background: rgb(from var(--color-fg) r g b / 22%);
+  }
+
+  .kc__sheet-toggle {
+    position: absolute;
+    inset: 0;
+  }
+
+  .kc[data-sheet] .kc__panel-body {
+    overflow-y: auto;
+    /* Scroll natively here, and never chain that scroll to the page. */
+    touch-action: pan-y;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    padding-top: var(--kc-space-4);
+  }
+
+  .kc[data-sheet] .kc__actions {
+    flex: 0 0 auto;
+    padding-block: var(--kc-space-3);
+  }
+
+  /* Sized against the collapsed peek, never the live sheet height —
+     reflowing the photo mid-drag would move every placement. Opening the
+     sheet scales the stage instead, which is GPU-only and keeps the
+     garment on screen at every snap. */
+  .kc__stage {
+    aspect-ratio: auto;
+    height: calc(100vh - var(--kc-sheet-peek) - 8rem);
+    height: calc(100dvh - var(--kc-sheet-peek) - 8rem);
+    transform-origin: 50% 10%;
+    transition: transform var(--kc-duration-base) var(--kc-ease);
+  }
+
+  .kc[data-sheet='open'] .kc__stage {
+    transform: translateY(-2%) scale(0.84);
+  }
+
+  .kc__step-name,
+  .kc__step-value {
+    display: none;
+  }
+
+  .kc__step-tab {
+    flex: 0 0 auto;
+    justify-content: center;
+    min-height: 2.75rem;
+  }
+
+  .kc__step-tab[data-state='active'] .kc__step-name {
+    display: inline;
+  }
+
+  .kc__steps-nav {
+    justify-content: center;
+  }
 }
 
 .kc__designs {
@@ -2134,24 +2459,12 @@ p {
   color: rgb(from var(--color-fg) r g b / 60%);
 }
 
+/* The CTA is the sheet's pinned footer on phones, so it no longer needs
+   its own fixed positioning — one bottom-anchored element, not two. */
 .kc__actions {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-}
-
-/* On phones the primary CTA pins to the bottom so it's always reachable
-   while designing; the secondary actions stay inline. */
-@media screen and (max-width: 989px) {
-  .kc__add {
-    position: fixed;
-    inset-inline: 0.75rem;
-    bottom: max(0.75rem, env(safe-area-inset-bottom));
-    z-index: 30;
-    width: auto;
-    padding-block: 1.05rem;
-    box-shadow: 0 6px 20px rgb(0 0 0 / 22%);
-  }
+  gap: var(--kc-space-3);
 }
 
 .kc__note {
