@@ -1937,31 +1937,6 @@ p {
   color: var(--color-bg);
 }
 
-.kc__colorways {
-  display: flex;
-  gap: 0.6rem;
-  flex-wrap: wrap;
-}
-
-.kc__colorway {
-  width: 3.25rem;
-  height: 4rem;
-  border: 2px solid var(--color-border);
-  border-radius: var(--radius);
-  overflow: hidden;
-  background: var(--color-surface);
-}
-
-.kc__colorway[aria-current='true'] {
-  border-color: var(--color-fg);
-}
-
-.kc__colorway img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
 .kc__sizes {
   display: flex;
   gap: 0.5rem;

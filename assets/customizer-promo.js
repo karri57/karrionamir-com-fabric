@@ -222,9 +222,27 @@ class ShowcaseDemo extends HTMLElement {
 customElements.define('showcase-demo', ShowcaseDemo);
 
 /* -------------------------------------------------------------------------
- * Picker cards: choosing a colorway swatch pins that photo on the card and
- * carries the choice into the designer link.
+ * Picker cards. The colourway chosen here is the one the designer opens
+ * on — the studio has no colour step of its own — so the card link always
+ * carries ?colorway= for whichever photo is currently showing.
  * ---------------------------------------------------------------------- */
+
+// Frame index and swatch index are the same ordinal by construction, so the
+// swatch at that index names the colourway on screen.
+function syncCardColorway(card) {
+  const link = card.querySelector('.picker-card__link');
+  if (!link) return;
+
+  const frame = card.querySelector('showcase-demo')?.frameIndex ?? 0;
+  const swatch = card.querySelector(`[data-picker-swatch="${frame}"]`);
+  const colorway = swatch?.dataset.colorway;
+  if (!colorway) return;
+
+  const url = new URL(link.getAttribute('href'), window.location.origin);
+  url.searchParams.set('colorway', colorway);
+  link.setAttribute('href', `${url.pathname}${url.search}`);
+}
+
 document.addEventListener('click', (event) => {
   const swatch = event.target.closest('[data-picker-swatch]');
   if (!swatch) return;
@@ -237,11 +255,14 @@ document.addEventListener('click', (event) => {
   );
 
   card.querySelector('showcase-demo')?.pinFrame(Number(swatch.dataset.pickerSwatch));
+  syncCardColorway(card);
+});
 
-  const link = card.querySelector('.picker-card__link');
-  if (link && swatch.dataset.colorway) {
-    const url = new URL(link.getAttribute('href'), window.location.origin);
-    url.searchParams.set('colorway', swatch.dataset.colorway);
-    link.setAttribute('href', `${url.pathname}${url.search}`);
-  }
+// pointerdown rather than click so the href is already correct for
+// middle-click, cmd-click and open-in-new-tab, not just plain navigation.
+document.addEventListener('pointerdown', (event) => {
+  const link = event.target.closest('.picker-card__link');
+  if (!link) return;
+  const card = link.closest('.picker-card');
+  if (card) syncCardColorway(card);
 });

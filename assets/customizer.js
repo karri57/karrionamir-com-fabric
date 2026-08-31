@@ -108,18 +108,15 @@ class KaCustomizer extends HTMLElement {
 
   /* -- steps ------------------------------------------------------------- */
 
-  // Colour and size only exist as steps when the garment actually offers a
-  // choice. Both tests mirror the ones renderColorways/renderSizes already
-  // use, so there is a single definition of "does this control apply".
+  // Colour is chosen on the picker page and carried here via ?colorway=,
+  // so the studio has no colour step. Size only exists as a step when the
+  // garment actually offers a choice; that test mirrors renderSizes so
+  // there is a single definition of "does this control apply".
   get steps() {
-    const canvas = this.currentCanvas;
-    const variants = canvas.variants;
-    const hasColor = canvas.colorways.length > 1;
+    const variants = this.currentCanvas.variants;
     const hasSize =
       variants.length > 1 || (variants.length === 1 && variants[0].title !== 'Default Title');
-    return ['design', 'color', 'size', 'review'].filter(
-      (step) => (step !== 'color' || hasColor) && (step !== 'size' || hasSize)
-    );
+    return ['design', 'size', 'review'].filter((step) => step !== 'size' || hasSize);
   }
 
   setStep(step) {
@@ -179,7 +176,6 @@ class KaCustomizer extends HTMLElement {
       const count = this.designCount();
       return count ? `${count} placed` : 'None yet';
     }
-    if (step === 'color') return this.currentCanvas.colorways[this.state.colorwayIndex]?.name || '';
     if (step === 'size') return this.currentCanvas.variants[this.state.sizeIndex]?.title || '';
     const base = this.basePriceCents();
     return base == null ? '' : money(base + this.feeDollars() * 100);
@@ -348,9 +344,6 @@ class KaCustomizer extends HTMLElement {
         return;
       }
 
-      const colorwayButton = event.target.closest('[data-kc-colorway]');
-      if (colorwayButton) return this.setColorway(Number(colorwayButton.dataset.kcColorway));
-
       const sizeButton = event.target.closest('[data-kc-size]');
       if (sizeButton && !sizeButton.disabled) return this.setSize(Number(sizeButton.dataset.kcSize));
 
@@ -467,10 +460,12 @@ class KaCustomizer extends HTMLElement {
     this.state.step = 'design';
     this.state.visited = new Set(['design']);
 
-    // Honor a colorway carried over from the picker page, once.
+    // The colour is chosen on the picker page and arrives as ?colorway=,
+    // matched on the handleized name. Consumed once, so switching garment
+    // afterwards falls back to that garment's first colourway.
     if (this.requestedColorway) {
       const wanted = this.config.canvases[index].colorways.findIndex(
-        (c) => (c.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') === this.requestedColorway
+        (c) => this.handleize(c.name) === this.requestedColorway
       );
       if (wanted >= 0) this.state.colorwayIndex = wanted;
       this.requestedColorway = null;
@@ -490,11 +485,19 @@ class KaCustomizer extends HTMLElement {
       );
     }
     this.updatePhoto();
-    this.renderColorways();
     this.renderSizes();
     this.renderZone();
     this.renderPlacements();
     this.updateCommerce();
+  }
+
+  // Mirrors Liquid's `handleize`, so a colourway name written on the picker
+  // page resolves to the same slug the designer matches against.
+  handleize(value) {
+    return (value || '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '');
   }
 
   renderZone() {
@@ -528,22 +531,6 @@ class KaCustomizer extends HTMLElement {
     return [px, Math.min(95, bottom + margin)];
   }
 
-  setColorway(index) {
-    this.state.colorwayIndex = index;
-    if (this.state.view === 'back' && !this.currentCanvas.colorways[index]?.back) {
-      this.state.view = 'front';
-      this.querySelectorAll('[data-kc-photo-view-group] [data-kc-view]').forEach((b) =>
-        b.setAttribute('aria-current', b.dataset.kcView === 'front' ? 'true' : 'false')
-      );
-    }
-    this.state.selected = null;
-    this.updatePhoto();
-    this.renderColorways();
-    this.renderPlacements();
-    this.updateCommerce();
-    this.advanceFrom('color');
-  }
-
   setSize(index) {
     this.state.sizeIndex = index;
     this.renderSizes();
@@ -557,26 +544,6 @@ class KaCustomizer extends HTMLElement {
     const showBack = this.state.view === 'back' && colorway.back;
     this.photoEl.src = showBack ? colorway.back : colorway.front;
     this.photoEl.alt = `${this.currentCanvas.label} — ${colorway.name}${showBack ? ' (back)' : ''}`;
-  }
-
-  renderColorways() {
-    const group = this.querySelector('[data-kc-colorway-group]');
-    const holder = this.querySelector('[data-kc-colorways]');
-    const nameEl = this.querySelector('[data-kc-colorway-name]');
-    if (!group || !holder) return;
-
-    const colorways = this.currentCanvas.colorways;
-    group.hidden = colorways.length < 2;
-    if (nameEl) nameEl.textContent = colorways[this.state.colorwayIndex]?.name || '';
-
-    holder.innerHTML = colorways
-      .map(
-        (c, i) => `
-      <button type="button" class="kc__colorway" data-kc-colorway="${i}" aria-current="${i === this.state.colorwayIndex}" title="${c.name}">
-        <img src="${c.front}" alt="${c.name}" loading="lazy">
-      </button>`
-      )
-      .join('');
   }
 
   renderSizes() {
