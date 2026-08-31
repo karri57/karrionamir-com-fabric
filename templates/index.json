@@ -24,7 +24,7 @@
       "type": "featured-collection",
       "settings": {
         "heading": "New Arrivals",
-        "collection": "all",
+        "collection": "frontpage",
         "products_to_show": 8,
         "columns": 2,
         "show_filters": true,
@@ -60,7 +60,11 @@
         "text": "Create your own clothing about Jesus, and have a chance to win our pick and receive a gift card worth 100$.",
         "button_label": "Start designing",
         "link": "",
-        "shirt_image": "shopify://shop_images/IMG_1413.jpg"
+        "shirt_image": "shopify://shop_images/IMG_1413.jpg",
+        "zone_x": 50,
+        "zone_y": 42,
+        "zone_w": 32,
+        "zone_h": 28
       }
     }
   },
