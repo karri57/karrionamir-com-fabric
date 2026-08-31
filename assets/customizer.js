@@ -53,6 +53,9 @@ class KaCustomizer extends HTMLElement {
     this.state = {
       canvasIndex: 0,
       colorwayIndex: 0,
+      // Chosen colourway per canvas key, so switching garments and back
+      // keeps each one's colour.
+      colorwayByCanvas: {},
       sizeIndex: 0,
       view: 'front',
       placements: {},
@@ -187,7 +190,7 @@ class KaCustomizer extends HTMLElement {
     const canvas = this.currentCanvas;
     const rows = [['Garment', canvas.label]];
     if (canvas.colorways.length > 1) {
-      rows.push(['Colour', canvas.colorways[this.state.colorwayIndex]?.name || '']);
+      rows.push(['Colour', this.currentColorway?.name || '']);
     }
     const size = canvas.variants[this.state.sizeIndex]?.title;
     if (size && size !== 'Default Title') rows.push(['Size', size]);
@@ -452,24 +455,31 @@ class KaCustomizer extends HTMLElement {
 
   setCanvas(index) {
     this.state.canvasIndex = index;
-    this.state.colorwayIndex = 0;
     this.state.view = 'front';
     this.state.selected = null;
-    // Changing garment invalidates colour and size, so the guided run
-    // starts over rather than claiming steps were already completed.
+    // Changing garment invalidates size, so the guided run starts over
+    // rather than claiming steps were already completed.
     this.state.step = 'design';
     this.state.visited = new Set(['design']);
 
+    const canvas = this.config.canvases[index];
+    // Each garment remembers its own colourway, so returning to one keeps
+    // the colour that was picked for it. Without this, coming back would
+    // silently drop to the first colourway — and any back-side designs
+    // would be stranded on a colourway that has no back photo.
+    this.state.colorwayIndex = this.state.colorwayByCanvas[canvas.key] ?? 0;
+
     // The colour is chosen on the picker page and arrives as ?colorway=,
-    // matched on the handleized name. Consumed once, so switching garment
-    // afterwards falls back to that garment's first colourway.
+    // matched on the handleized name. Consumed once, on first load.
     if (this.requestedColorway) {
-      const wanted = this.config.canvases[index].colorways.findIndex(
+      const wanted = canvas.colorways.findIndex(
         (c) => this.handleize(c.name) === this.requestedColorway
       );
       if (wanted >= 0) this.state.colorwayIndex = wanted;
       this.requestedColorway = null;
     }
+    this.state.colorwayByCanvas[canvas.key] = this.state.colorwayIndex;
+
     const firstAvailable = this.currentCanvas.variants.findIndex((v) => v.available);
     this.state.sizeIndex = firstAvailable >= 0 ? firstAvailable : 0;
     this.hideTools();
@@ -477,18 +487,28 @@ class KaCustomizer extends HTMLElement {
     this.querySelectorAll('[data-kc-canvas]').forEach((b) =>
       b.setAttribute('aria-current', b.dataset.kcCanvas === this.currentCanvas.key ? 'true' : 'false')
     );
-    const viewGroup = this.querySelector('[data-kc-photo-view-group]');
-    if (viewGroup) {
-      viewGroup.hidden = !this.currentCanvas.colorways.some((c) => c.back);
-      viewGroup.querySelectorAll('[data-kc-view]').forEach((b) =>
-        b.setAttribute('aria-current', b.dataset.kcView === 'front' ? 'true' : 'false')
-      );
-    }
+    this.updateViewSwitch();
     this.updatePhoto();
     this.renderSizes();
     this.renderZone();
     this.renderPlacements();
     this.updateCommerce();
+  }
+
+  get currentColorway() {
+    return this.currentCanvas.colorways[this.state.colorwayIndex] || this.currentCanvas.colorways[0];
+  }
+
+  // Flipping to the back only means anything when the colourway actually on
+  // screen has a back photo — several garments have one for some colourways
+  // and not others, so this is per colourway, not per garment.
+  updateViewSwitch() {
+    const group = this.querySelector('[data-kc-photo-view-group]');
+    if (!group) return;
+    group.hidden = !this.currentColorway?.back;
+    group.querySelectorAll('[data-kc-view]').forEach((b) =>
+      b.setAttribute('aria-current', String(b.dataset.kcView === this.state.view))
+    );
   }
 
   // Mirrors Liquid's `handleize`, so a colourway name written on the picker
@@ -540,7 +560,7 @@ class KaCustomizer extends HTMLElement {
 
   updatePhoto() {
     if (!this.photoEl) return;
-    const colorway = this.currentCanvas.colorways[this.state.colorwayIndex] || this.currentCanvas.colorways[0];
+    const colorway = this.currentColorway;
     const showBack = this.state.view === 'back' && colorway.back;
     this.photoEl.src = showBack ? colorway.back : colorway.front;
     this.photoEl.alt = `${this.currentCanvas.label} — ${colorway.name}${showBack ? ' (back)' : ''}`;
@@ -567,13 +587,16 @@ class KaCustomizer extends HTMLElement {
   }
 
   setView(view) {
+    // The control is hidden without a back photo; this also stops a stray
+    // call leaving the toggle marked "Back" over an unchanged front photo.
+    if (view === 'back' && !this.currentColorway?.back) return;
     this.state.view = view;
     this.state.selected = null;
-    this.querySelectorAll('[data-kc-view]').forEach((b) =>
-      b.setAttribute('aria-current', b.dataset.kcView === view ? 'true' : 'false')
-    );
+    this.hideTools();
+    this.updateViewSwitch();
     this.updatePhoto();
     this.renderPlacements();
+    this.updateCommerce();
   }
 
   /* -- commerce ----------------------------------------------------------- */
@@ -733,7 +756,7 @@ class KaCustomizer extends HTMLElement {
     try {
       const width = 900;
       const canvasDef = this.currentCanvas;
-      const colorway = canvasDef.colorways[this.state.colorwayIndex];
+      const colorway = this.currentColorway;
       const frontPlacements = this.state.placements[`${canvasDef.key}-front`] || [];
       const backPlacements = this.state.placements[`${canvasDef.key}-back`] || [];
       const showBack = Boolean(colorway.back) && backPlacements.length > 0;
@@ -804,7 +827,7 @@ class KaCustomizer extends HTMLElement {
 
   buildProperties(designId, previewUrl) {
     const canvas = this.currentCanvas;
-    const colorway = canvas.colorways[this.state.colorwayIndex]?.name || 'Standard';
+    const colorway = this.currentColorway?.name || 'Standard';
     return {
       Product: canvas.label,
       Colorway: colorway,
