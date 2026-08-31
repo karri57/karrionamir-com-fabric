@@ -21,7 +21,11 @@
             "photo_1": "shopify://shop_images/IMG_1444.jpg",
             "color_2_name": "",
             "color_3_name": "",
-            "color_4_name": ""
+            "color_4_name": "",
+            "noprint_x": 50,
+            "noprint_y": 20,
+            "noprint_w": 0,
+            "noprint_h": 0
           }
         },
         "canvas_classic_hoodie": {
@@ -33,7 +37,11 @@
             "photo_1": "shopify://shop_images/IMG_1334.jpg",
             "color_2_name": "",
             "color_3_name": "",
-            "color_4_name": ""
+            "color_4_name": "",
+            "noprint_x": 50,
+            "noprint_y": 20,
+            "noprint_w": 0,
+            "noprint_h": 0
           }
         },
         "canvas_classic_polo": {
@@ -45,10 +53,15 @@
             "photo_1": "shopify://shop_images/IMG_1433.jpg",
             "color_2_name": "Navy",
             "photo_2": "shopify://shop_images/IMG_1432.jpg",
+            "photo_2_back": "shopify://shop_images/IMG_1431.jpg",
             "color_3_name": "Creme",
             "photo_3": "shopify://shop_images/IMG_1434.jpg",
             "color_4_name": "Purple",
-            "photo_4": "shopify://shop_images/IMG_1435.jpg"
+            "photo_4": "shopify://shop_images/IMG_1435.jpg",
+            "noprint_x": 50,
+            "noprint_y": 20,
+            "noprint_w": 0,
+            "noprint_h": 0
           }
         },
         "canvas_classic_sweater": {
@@ -60,7 +73,11 @@
             "photo_1": "shopify://shop_images/IMG_1439.jpg",
             "color_2_name": "",
             "color_3_name": "",
-            "color_4_name": ""
+            "color_4_name": "",
+            "noprint_x": 50,
+            "noprint_y": 20,
+            "noprint_w": 0,
+            "noprint_h": 0
           }
         },
         "canvas_washed_hoodie": {
@@ -70,9 +87,18 @@
             "product": "custom-washed-hoodie",
             "color_1_name": "Standard",
             "photo_1": "shopify://shop_images/IMG_1413_fc522466-4295-47a9-8832-1ddbefa9059b.jpg",
-            "color_2_name": "",
-            "color_3_name": "",
-            "color_4_name": ""
+            "photo_1_back": "shopify://shop_images/IMG_1414.jpg",
+            "color_2_name": "Stone",
+            "photo_2": "shopify://shop_images/IMG_1417.jpg",
+            "photo_2_back": "shopify://shop_images/IMG_1418.jpg",
+            "color_3_name": "Black",
+            "photo_3": "shopify://shop_images/IMG_1415.jpg",
+            "photo_3_back": "shopify://shop_images/IMG_1416.jpg",
+            "color_4_name": "",
+            "noprint_x": 50,
+            "noprint_y": 20,
+            "noprint_w": 0,
+            "noprint_h": 0
           }
         },
         "design_logo_1": {
@@ -101,7 +127,8 @@
       ],
       "settings": {
         "heading": "Design studio",
-        "subtext": "Place our designs, make it yours."
+        "subtext": "Place our designs, make it yours.",
+        "fee_product": ""
       }
     }
   },
