@@ -12,7 +12,6 @@
     "hero": {
       "type": "hero",
       "settings": {
-        "image": "shopify://shop_images/IMG_0979.jpg",
         "heading": "New this season",
         "text": "A collection of inspired silhouettes crafted from the finest fibers.",
         "button_label": "Shop now",
@@ -37,15 +36,13 @@
         "design_KhYwqD": {
           "type": "design",
           "settings": {
-            "label": "Logo",
-            "image": "shopify://shop_images/IMG_0093.png"
+            "label": "Logo"
           }
         },
         "design_GVGBpb": {
           "type": "design",
           "settings": {
-            "label": "Logo",
-            "image": "shopify://shop_images/IMG_1335.png"
+            "label": "Logo"
           }
         }
       },
