@@ -36,13 +36,15 @@
         "design_KhYwqD": {
           "type": "design",
           "settings": {
-            "label": "Logo"
+            "label": "Logo",
+            "image": "shopify://shop_images/74F98BFC-8C8F-49DB-A724-4FBD20B15495.png"
           }
         },
         "design_GVGBpb": {
           "type": "design",
           "settings": {
-            "label": "Logo"
+            "label": "Logo",
+            "image": "shopify://shop_images/IMG_0093.png"
           }
         }
       },
