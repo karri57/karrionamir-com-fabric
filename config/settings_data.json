@@ -9,8 +9,8 @@
  */
 {
   "current": {
-    "logo": "shopify://shop_images/IMG_9848.png",
-    "logo_width": 140,
+    "logo": "shopify://shop_images/74F98BFC-8C8F-49DB-A724-4FBD20B15495.png",
+    "logo_width": 60,
     "color_background": "#ffffff",
     "color_foreground": "#030302",
     "color_border": "#d3cec5",
@@ -30,7 +30,8 @@
         "type": "header",
         "settings": {
           "menu": "main-menu",
-          "sticky": true
+          "sticky": true,
+          "show_nav_bar": true
         }
       },
       "footer": {
